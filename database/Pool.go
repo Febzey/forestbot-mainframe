@@ -19,6 +19,9 @@ type databaseOptions struct {
 	Name     string
 }
 
+type ControllerInterface interface {
+}
+
 func Connect() (*Database, error) {
 
 	databaseOptions := databaseOptions{

@@ -5,68 +5,16 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/febzey/ForestBot-Mainframe/types"
 	"github.com/gorilla/websocket"
+	"github.com/mitchellh/mapstructure"
 )
-
-// MinecraftMessage represents the top-level message structure.
-
-// The Data inside of websocket message can be one of the other types below.
-// Type will be either "discord" or "minecraft"
-// Action will be like "savechat" "chat" "advancement" "playerjoin" "playerleave" "playerdeath" etc
-type WebsocketMessage struct {
-	Type   string      `json:"type"`
-	Action string      `json:"action"`
-	Data   interface{} `json:"data"`
-}
-
-type DiscordInBoundMessage struct {
-	GuildName string `json:"guild_name"`
-	GuildID   string `json:"guild_id"`
-	ChannelID string `json:"channel_id"`
-	SetupBy   string `json:"setup_by"`
-	TimeStamp string `json:"time_stamp"`
-	MCServer  string `json:"mc_server"`
-}
-
-// MinecraftChatMessage represents the structure for chat messages.
-type MinecraftChatMessage struct {
-	Name     string `json:"name"`
-	Message  string `json:"message"`
-	MCServer string `json:"mc_server"`
-	Date     int64  `json:"timestamp"`
-}
-
-// MinecraftChatAdvancement represents the structure for advancement messages.
-type MinecraftChatAdvancement struct {
-	Username    string `json:"username"`
-	Advancement string `json:"advancement"`
-	Time        int64  `json:"time"`
-	MCServer    string `json:"mc_server"`
-	UUID        string `json:"uuid,omitempty"`
-}
-
-// MinecraftPlayerJoinArgs represents the structure for player join messages.
-type MinecraftPlayerJoinArgs struct {
-	User     string `json:"user"`
-	UUID     string `json:"uuid"`
-	MCServer string `json:"mc_server"`
-	Time     string `json:"time"`
-}
 
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
 	CheckOrigin:     func(*http.Request) bool { return true }, //TODO: change this to only allow connections from our domain
 }
-
-//TODO: Implement authentication of some sort
-//TODO: Implement a way to send data to the client
-//TODO: Implement a way to receive data from the client
-//TODO: keep track of clients, add to map when connected with their id, remove when disconnected
-//TODO: Implement a way to send data to a specific client
-//TODO keep organzied create individual functions for each task
-//TODO: create list of every sort of data we need to pull from database, then create query file
-//create message channel, send all messages to that channel from each client, then have a goroutine that listens to that channel and sends the messages to the client
 
 func (c *Controller) handleWebSocketAuth(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
@@ -75,17 +23,13 @@ func (c *Controller) handleWebSocketAuth(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	//our websocket url will look like this ws://localhost:5000/authenticate?client-id=newtest&client-type=minecraft-bot&x-api-key=123456789
-
 	client_id := r.URL.Query().Get("client-id")
-	client_type := r.URL.Query().Get("client-type")
 	api_key := r.URL.Query().Get("x-api-key")
 
-	//if there is no client id or clientType or apiKey headers, then close the connection
-	if client_id == "" || client_type == "" || api_key == "" {
-		c.Logger.Error("Client did not provide client-id, client-type, or x-api-key headers")
+	if client_id == "" || api_key == "" {
+		c.Logger.Error("Client did not provide client-id, or x-api-key headers")
 		//send message to client
-		errorMessage := "Missing required headers: client-id, client-type, x-api-key"
+		errorMessage := "Missing required headers: client-id, x-api-key"
 		err = conn.WriteMessage(websocket.TextMessage, []byte(errorMessage))
 		if err != nil {
 			c.Logger.Error(err.Error())
@@ -96,7 +40,7 @@ func (c *Controller) handleWebSocketAuth(w http.ResponseWriter, r *http.Request)
 	}
 
 	//Eventually put this in a function that saves it to a logfile when program exits
-	c.Logger.Info(fmt.Sprintf("Client connected to websocket: %s %s %s", client_id, client_type, api_key))
+	c.Logger.Info(fmt.Sprintf("Client connected to websocket: %s %s", client_id, api_key))
 
 	c.Mutex.Lock()
 	c.Clients[client_id] = conn
@@ -115,83 +59,220 @@ func (c *Controller) handleWebSocketAuth(w http.ResponseWriter, r *http.Request)
 			return
 		}
 
-		// Process the raw WebSocket message
-		var recievedMessage WebsocketMessage
+		var recievedMessage types.WebsocketMessage
+
 		if err := json.Unmarshal(p, &recievedMessage); err != nil {
 			c.Logger.Error(err.Error())
+
+			//send a message back to the client telling them their message structure was invalid
+			errorMessage := "Invalid message structure"
+			if err = conn.WriteMessage(websocket.TextMessage, []byte(errorMessage)); err != nil {
+				c.Logger.Error(err.Error())
+			}
 			continue
 		}
-		//c.MessageChan <- recievedMessage
 
-		//log our messages to console
-		c.Logger.Info("Message recieved from client: " + fmt.Sprintf("%v", recievedMessage))
+		c.MessageChan <- recievedMessage
 
-		switch recievedMessage.Type {
-		case "discord":
-			switch recievedMessage.Action {
-			case "chat":
-				//implement chat for inbound discord messages we want to umarshall the data "chat" will be the discordinbound message struct
-				//var discordInboundMessage DiscordInBoundMessage
-				data, ok := recievedMessage.Data.(DiscordInBoundMessage)
-				if !ok {
-					c.Logger.Error("Failed to assert data as DiscordInBoundMessage")
-					continue
-				}
-				c.Logger.Info("Discord chat message recieved from client: " + fmt.Sprintf("%v", data))
-				// jsonData, err := json.Marshal(data)
-				// if err != nil {
-				// 	c.Logger.Error(err.Error())
-				// 	continue
-				// }
-				// if err := json.Unmarshal(jsonData, &discordInboundMessage); err != nil {
-				// 	c.Logger.Error(err.Error())
-				// 	continue
-				// }
+	}
+}
+
+// This function is handling messages sent to our websocket server
+// example: messages sent from our minecraft bots or discord live chat!
+func ProcessWebsocketMessage(c *Controller) {
+	for {
+		message := <-c.MessageChan
+
+		switch message.Action {
+
+		//Handling discord chat messages and sending them to our clients
+		case "inbound_discord_chat":
+			var discordMessage types.DiscordMessage
+			if err := mapstructure.Decode(message.Data, &discordMessage); err != nil {
+				c.Logger.Error(err.Error())
+				continue
+			}
+			c.Logger.Info("Discord chat message recieved from client: " + fmt.Sprintf("%v", discordMessage))
+			c.BroadcastMessageToClients(message)
+			continue
+
+		//Handling minecraft chat messages and sending them to our clients and saving in database.
+		case "inbound_minecraft_chat":
+			var minecraftChatMessage types.MinecraftChatMessage
+			if err := mapstructure.Decode(message.Data, &minecraftChatMessage); err != nil {
+				c.Logger.Error(err.Error()) //i think its a bug
+				continue
 			}
 
-		case "minecraft":
-			switch recievedMessage.Action {
-			case "savechat":
+			c.Logger.Info("Minecraft chat message recieved from client: " + fmt.Sprintf("%v", minecraftChatMessage))
+			err := c.Database.SaveMinecraftChatMessage(minecraftChatMessage)
+			if err != nil {
+				c.Logger.Error(err.Error())
+			}
 
-				var minecraftChatMessage MinecraftChatMessage
-				dataMap, ok := recievedMessage.Data.(map[string]interface{})
-				if !ok {
-					c.Logger.Error("Failed to assert data as map[string]interface{}")
-					continue
-				}
+			c.BroadcastMessageToClients(message)
+			continue
 
-				jsonData, err := json.Marshal(dataMap)
+		//Handling minecraft advancement messages and sending them to our clients and saving in database.
+		case "minecraft_advancement":
+			var minecraftAdvancementMessage types.MinecraftAdvancementMessage
+			if err := mapstructure.Decode(message.Data, &minecraftAdvancementMessage); err != nil {
+				c.Logger.Error(err.Error())
+				continue
+			}
+			c.Logger.Info("Minecraft advancement message recieved from client: " + fmt.Sprintf("%v", minecraftAdvancementMessage))
+
+			err := c.Database.SaveMinecraftAdvancementMessage(minecraftAdvancementMessage)
+			if err != nil {
+				c.Logger.Error(err.Error())
+			}
+
+			c.BroadcastMessageToClients(message)
+
+			continue
+
+		//Handling minecraft player join messages and sending them to our clients and saving in database.
+		case "minecraft_player_join":
+			var minecraftPlayerJoinMessage types.MinecraftPlayerJoinMessage
+			if err := mapstructure.Decode(message.Data, &minecraftPlayerJoinMessage); err != nil {
+				c.Logger.Error(err.Error())
+				continue
+			}
+			c.Logger.Info("Minecraft player join message recieved from client: " + fmt.Sprintf("%v", minecraftPlayerJoinMessage))
+
+			data, err := c.Database.SavePlayerJoin(minecraftPlayerJoinMessage)
+			if err != nil {
+				c.Logger.Error(err.Error())
+			}
+
+			switch data.Action {
+			case "new_name":
+				c.SendMessageToClient(minecraftPlayerJoinMessage.Server, types.WebsocketMessage{
+					Action: "new_name",
+					Data:   map[string]interface{}{"username": data.Data},
+				})
+				continue
+
+			case "new_user":
+				c.SendMessageToClient(minecraftPlayerJoinMessage.Server, types.WebsocketMessage{
+					Action: "new_user",
+					Data:   map[string]interface{}{"username": data.Data},
+				})
+				continue
+
+			case "none":
+				continue
+
+			default:
+				c.Logger.Error("Invalid action from database")
+			}
+
+			c.BroadcastMessageToClients(message)
+
+			continue
+
+		//Handling minecraft player leave messages and sending them to our clients and saving in database.
+		case "minecraft_player_leave":
+			var minecraftPlayerLeaveMessage types.MinecraftPlayerLeaveMessage
+			if err := mapstructure.Decode(message.Data, &minecraftPlayerLeaveMessage); err != nil {
+				c.Logger.Error(err.Error())
+				continue
+			}
+			c.Logger.Info("Minecraft player leave message recieved from client: " + fmt.Sprintf("%v", minecraftPlayerLeaveMessage))
+			c.Database.SavePlayerLeave(minecraftPlayerLeaveMessage)
+			c.BroadcastMessageToClients(message)
+
+			continue
+
+		//Handling minecraft player death messages and sending them to our clients and saving in database.
+		case "minecraft_player_death":
+			var minecraftPlayerDeathMessage types.MinecraftPlayerDeathMessage
+			if err := mapstructure.Decode(message.Data, &minecraftPlayerDeathMessage); err != nil {
+				c.Logger.Error(err.Error())
+				continue
+			}
+			c.Logger.Info("Minecraft player death message recieved from client: " + fmt.Sprintf("%v", minecraftPlayerDeathMessage))
+
+			err := c.Database.InsertPlayerDeathOrKill(minecraftPlayerDeathMessage)
+			if err != nil {
+				c.Logger.Error(err.Error())
+			}
+			c.BroadcastMessageToClients(message)
+
+			continue
+
+		//Handling minecraft player list, updating each players playtime and saving in database. while updating our playerlist map
+		case "send_update_player_list":
+			dataMap, ok := message.Data.(map[string]interface{})
+			if !ok {
+				c.Logger.Error("Expected 'data' field to be a map[string]interface{}")
+				continue
+			}
+
+			// Extract the "players" array from the map
+			playersArray, ok := dataMap["players"].([]interface{})
+			if !ok {
+				c.Logger.Error("Expected 'players' field to be a []interface{}")
+				continue
+			}
+
+			// Directly decode []interface{} into []types.Player
+			var minecraftPlayerListArray []types.Player
+			if err := mapstructure.Decode(playersArray, &minecraftPlayerListArray); err != nil {
+				c.Logger.Error(err.Error())
+				continue
+			}
+
+			//we want to run a function that will update player playtime by 60000 milliseconds which is 1 minute
+			for _, player := range minecraftPlayerListArray {
+				err := c.Database.UpdatePlayerPlaytime(player.Uuid, player.Server)
 				if err != nil {
 					c.Logger.Error(err.Error())
-					sendWebsocketError(conn, "Some Properties may not be correct")
-					continue
 				}
+			}
 
-				if err := json.Unmarshal(jsonData, &minecraftChatMessage); err != nil {
-					c.Logger.Error(err.Error())
-					sendWebsocketError(conn, "Some Properties may not be correct")
-					continue
-				}
+			c.Mutex.Lock()
+			c.PlayerLists[minecraftPlayerListArray[0].Server] = minecraftPlayerListArray
+			c.Mutex.Unlock()
 
-				c.Logger.Info("Minecraft chat message recieved from client: " + fmt.Sprintf("%v", minecraftChatMessage))
-
-				c.Logger.Info(minecraftChatMessage.Message)
-
-				//implement saving message to database
-
-				//implement sending message to discord!
+		default:
+			{
+				c.Logger.Error("Invalid message action")
+				continue
 
 			}
+
 		}
 
-		// if err := conn.WriteMessage(messageType, p); err != nil {
-		// 	c.Logger.Error(err.Error())
-		// 	return
-		// }
+	}
+}
+
+// This is a function that allows us to send client specific messages.
+// As in we can send a message to a specific client by their client_id
+func (c *Controller) SendMessageToClient(client_id string, message types.WebsocketMessage) {
+	c.Mutex.Lock()
+	conn, ok := c.Clients[client_id]
+	c.Mutex.Unlock()
+	if !ok {
+		c.Logger.Error("Client with client_id: " + client_id + " does not exist")
+	}
+
+	if err := conn.WriteJSON(message); err != nil {
+		c.Logger.Error(err.Error())
 	}
 
 }
 
-func sendWebsocketError(conn *websocket.Conn, errorMessage string) error {
+// This function is used to broadcast a message
+// to every single client connected to our server
+func (c *Controller) BroadcastMessageToClients(message types.WebsocketMessage) {
+	for _, conn := range c.Clients {
+		if err := conn.WriteJSON(message); err != nil {
+			c.Logger.Error(err.Error())
+		}
+	}
+}
+
+func SendWebsocketError(conn *websocket.Conn, errorMessage string) error {
 	return conn.WriteMessage(websocket.TextMessage, []byte(errorMessage))
 }

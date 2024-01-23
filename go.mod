@@ -10,6 +10,7 @@ require (
 
 require (
 	github.com/felixge/httpsnoop v1.0.3 // indirect
+	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	golang.org/x/net v0.17.0 // indirect
 )
 
