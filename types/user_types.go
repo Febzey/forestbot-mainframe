@@ -16,12 +16,6 @@ type WebsocketMessage struct {
 	Data interface{} `json:"data"`
 }
 
-type PlayerList struct {
-	Name    string
-	Ping    int
-	HeadURL string
-}
-
 type User struct {
 	Username        string
 	Kills           int64
@@ -42,6 +36,7 @@ type Player struct {
 	Uuid     string `json:"uuid"`
 	Latency  int    `json:"latency"`
 	Server   string `json:"server"`
+	Head_url string `json:"head_url"`
 }
 
 type DiscordMessage struct {

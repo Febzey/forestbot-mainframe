@@ -354,6 +354,7 @@ func ProcessWebsocketMessage(c *Controller) {
 
 			// Directly decode []interface{} into []types.Player
 			var minecraftPlayerListArray []types.Player
+
 			if err := mapstructure.Decode(playersArray, &minecraftPlayerListArray); err != nil {
 				c.Logger.Error(err.Error())
 				sendMessageByStructure(c.Clients[message.Client_id].Conn, types.WebsocketMessage{
@@ -365,7 +366,7 @@ func ProcessWebsocketMessage(c *Controller) {
 			}
 
 			//we want to run a function that will update player playtime by 60000 milliseconds which is 1 minute
-			for _, player := range minecraftPlayerListArray {
+			for i, player := range minecraftPlayerListArray {
 				err := c.Database.UpdatePlayerPlaytime(player.Uuid, player.Server)
 				if err != nil {
 					c.Logger.Error(err.Error())
@@ -375,7 +376,11 @@ func ProcessWebsocketMessage(c *Controller) {
 						Data:      "Error updating player playtime in database",
 					})
 				}
+
+				minecraftPlayerListArray[i].Head_url = "https://mc-heads.net/avatar/" + player.Username + "/16"
 			}
+
+			fmt.Println(minecraftPlayerListArray[0])
 
 			c.Mutex.Lock()
 			c.PlayerLists[minecraftPlayerListArray[0].Server] = minecraftPlayerListArray

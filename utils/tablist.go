@@ -44,6 +44,9 @@ func registerCustomFont(dc *gg.Context) error {
 		DPI:     72,
 		Hinting: font.HintingNone,
 	})
+	if err != nil {
+		return fmt.Errorf("could not create font face: %+v", err)
+	}
 
 	dc.SetFontFace(face)
 	return nil
@@ -103,7 +106,7 @@ func loadImageFromPath(path string) (image.Image, error) {
 	return img, nil
 }
 
-func drawBlock(dc *gg.Context, x, z int, player types.PlayerList) {
+func drawBlock(dc *gg.Context, x, z int, player types.Player) {
 	dc.SetRGB(0.827, 0.827, 0.827)
 	dc.DrawRectangle(float64(x+2), float64(z), 276, 20)
 	dc.Fill()
@@ -115,7 +118,7 @@ func drawBlock(dc *gg.Context, x, z int, player types.PlayerList) {
 
 	dc.SetRGB(0, 0, 0)
 
-	avatar, err := loadImageFromURL(player.HeadURL)
+	avatar, err := loadImageFromURL(player.Head_url)
 	if err != nil {
 		log.Println("Error loading avatar:", err)
 		return
@@ -123,7 +126,7 @@ func drawBlock(dc *gg.Context, x, z int, player types.PlayerList) {
 	avatar = resize.Resize(16, 16, avatar, resize.Lanczos3)
 	dc.DrawImageAnchored(avatar, int(float64(x+5)), int(float64(z+2)), 0, 0)
 
-	pingImagePath, err := loadPingImage(player.Ping)
+	pingImagePath, err := loadPingImage(player.Latency)
 	if err != nil {
 		log.Println("Error loading ping image path:", err)
 		return
@@ -137,10 +140,10 @@ func drawBlock(dc *gg.Context, x, z int, player types.PlayerList) {
 	pingImage = resize.Resize(16, 16, pingImage, resize.Lanczos3)
 	dc.DrawImageAnchored(pingImage, int(float64(x+259)), int(float64(z+2)), 0, 0)
 
-	dc.DrawStringAnchored(player.Name, float64(x+23), float64(z+16), 0, 0)
+	dc.DrawStringAnchored(player.Username, float64(x+23), float64(z+16), 0, 0)
 }
 
-func RenderTab(players []types.PlayerList) *gg.Context {
+func RenderTab(players []types.Player) *gg.Context {
 
 	const canvasHeight = 350
 	canvasWidth := calculateCanvasWidth(len(players))

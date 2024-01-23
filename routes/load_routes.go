@@ -79,14 +79,14 @@ func LoadAndHandleRoutes(router *mux.Router, db *database.Database, logger *logg
 
 		//Get Request to implement:
 		//Advancements -- Done
-		//Messages
-		//Random Quote
+		//Messages -- Done
+		//Random Quote -- Done
 		//Tablist
 		//Bulk deaths
 		//Bulk kills
 
 		//THIS REALLY IS NOT HARD STOP OVER THINKING AND JUST GET IT FUCKING DONE!
-		//STOP PROCASTONATING
+		//STOP PROCASTINATING
 
 		{
 			Method:      http.MethodGet,
@@ -112,6 +112,16 @@ func LoadAndHandleRoutes(router *mux.Router, db *database.Database, logger *logg
 			Method:      http.MethodGet,
 			Pattern:     apiUrl + "/messages",
 			HandlerFunc: controller.GetMessages,
+		},
+		{
+			Method:      http.MethodGet,
+			Pattern:     apiUrl + "/quote",
+			HandlerFunc: controller.GetRandomQuotes,
+		},
+		{
+			Method:      http.MethodGet,
+			Pattern:     apiUrl + "/tablist",
+			HandlerFunc: controller.GetTablist,
 		},
 	}
 

@@ -8,6 +8,8 @@ import (
 	"github.com/febzey/ForestBot-Mainframe/utils"
 )
 
+//https://localhost:5000/messages?name=Febzey&server=newtest_new1&limit=100&order=DESC
+
 // Getting a user by their name
 // PATH: /messages
 // QUERIES: name, server, limit, order
