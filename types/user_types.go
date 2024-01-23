@@ -1,6 +1,20 @@
 package types
 
-import "database/sql"
+import (
+	"database/sql"
+)
+
+type WebsocketMessage struct {
+	Client_id string `json:"client_id"`
+
+	//Action for the message example:
+	//minecraft_chat_message, minecraft_player_join, minecraft_player_leave, minecraft_player_kill, minecraft_player_death, discord_message
+	Action string `json:"action"`
+
+	//The data for the message.
+	//The data can be many of our structs below.
+	Data interface{} `json:"data"`
+}
 
 type PlayerList struct {
 	Name    string
@@ -23,11 +37,6 @@ type User struct {
 	MCServer        string
 }
 
-type WebsocketMessage struct {
-	Action string      `json:"action"`
-	Data   interface{} `json:"data"`
-}
-
 type Player struct {
 	Username string `json:"username"`
 	Uuid     string `json:"uuid"`
@@ -48,7 +57,7 @@ type DiscordMessage struct {
 type MinecraftChatMessage struct {
 	Name      string `json:"name"`
 	Message   string `json:"message"`
-	Date      string `json:"date"`
+	Date      sql.NullString
 	Mc_server string `json:"mc_server"`
 	Uuid      string `json:"uuid"`
 }
@@ -58,7 +67,7 @@ type MinecraftAdvancementMessage struct {
 	Advancement string `json:"advancement"`
 	Time        int64  `json:"time"`
 	Mc_server   string `json:"mc_server"`
-	Id          int16  `json:"id,omitempty"`
+	Id          int    `json:"id,omitempty"`
 	Uuid        string `json:"uuid"`
 }
 
