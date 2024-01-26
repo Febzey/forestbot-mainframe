@@ -2,6 +2,8 @@ package types
 
 import (
 	"database/sql"
+	"image"
+	"sync"
 )
 
 type WebsocketMessage struct {
@@ -14,6 +16,14 @@ type WebsocketMessage struct {
 	//The data for the message.
 	//The data can be many of our structs below.
 	Data interface{} `json:"data"`
+}
+
+type ImageCache struct {
+	//The map of player heads to their image in the tablist.
+	HeadImages map[string]image.Image
+
+	//The mutex for the head images map.
+	Mu sync.RWMutex
 }
 
 type User struct {
@@ -94,7 +104,7 @@ type MinecraftPlayerDeathMessage struct {
 	Time          int64           `json:"time"`
 	Type          string          `json:"type"`
 	Mc_server     string          `json:"mc_server"`
-	Id            int16           `json:"id,omitempty"`
-	VictimUUID    string          `json:"victimUUID"`
+	Id            int
+	VictimUUID    string `json:"victimUUID"`
 	MurdererUUID  *sql.NullString
 }

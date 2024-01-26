@@ -13,9 +13,8 @@ import (
 //RESPONSE: ARRAY
 //Example: http://localhost:5000/api/v1/tablist?server=newtest_new1
 
-//PlayerLists map[string][]types.Player
-//string will be server name, []types.Player will be the list of players on that server
-
+// PlayerLists map[string][]types.Player
+// string will be server name, []types.Player will be the list of players on that server
 func (c *Controller) GetTablist(w http.ResponseWriter, r *http.Request) {
 	server := r.URL.Query().Get("server")
 
@@ -30,7 +29,7 @@ func (c *Controller) GetTablist(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	dc := utils.RenderTab(playerList)
+	dc := utils.RenderTab(playerList, &c.ImageCache)
 
 	if err := dc.SavePNG("tablist.png"); err != nil {
 		fmt.Println("Error saving PNG:", err)
@@ -41,17 +40,3 @@ func (c *Controller) GetTablist(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, "tablist.png")
 
 }
-
-// players := []types.PlayerList{
-// 	{Name: "Player1", Ping: 100, HeadURL: "https://mc-heads.net/avatar/Player1/16"},
-// }
-
-// dc := utils.RenderTab(players)
-
-// // Determine the directory of the executabl
-// if err := dc.SavePNG("tablist.png"); err != nil {
-// 	fmt.Println("Error saving PNG:", err)
-// 	return
-// }
-
-// fmt.Printf("Tablist image saved successfully")

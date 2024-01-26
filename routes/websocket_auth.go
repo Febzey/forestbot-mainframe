@@ -32,7 +32,7 @@ func InitializeWebsocketClient(conn *websocket.Conn, api_key string, mc_server s
 	}
 
 	if mc_server == "" || api_key == "" {
-		errorMessage := "Missing required headers: client-id, x-api-key"
+		errorMessage := "Missing required headers: client-id, x-api-key - closing the connection"
 		sendMessageByStructure(conn, types.WebsocketMessage{
 			Client_id: client_id,
 			Action:    "error",

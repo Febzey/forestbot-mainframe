@@ -76,7 +76,19 @@ func loadPingImage(ping int) (string, error) {
 	}
 }
 
-func loadImageFromURL(url string) (image.Image, error) {
+// We want a way to cache images. We don't want to download the same image over and over again.
+//we want to cache it in a map, with key as the url and value as the image
+
+func loadImageFromURL(url string, username string, imgCache *types.ImageCache) (image.Image, error) {
+
+	imgCache.Mu.RLock()
+	cached_img, ok := imgCache.HeadImages[username]
+	imgCache.Mu.RUnlock()
+
+	if ok && cached_img != nil {
+		return cached_img, nil
+	}
+
 	resp, err := http.Get(url)
 	if err != nil {
 		return nil, err
@@ -87,6 +99,10 @@ func loadImageFromURL(url string) (image.Image, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	imgCache.Mu.Lock()
+	imgCache.HeadImages[username] = img
+	imgCache.Mu.Unlock()
 
 	return img, nil
 }
@@ -106,7 +122,7 @@ func loadImageFromPath(path string) (image.Image, error) {
 	return img, nil
 }
 
-func drawBlock(dc *gg.Context, x, z int, player types.Player) {
+func drawBlock(dc *gg.Context, x, z int, player types.Player, imgCache *types.ImageCache) {
 	dc.SetRGB(0.827, 0.827, 0.827)
 	dc.DrawRectangle(float64(x+2), float64(z), 276, 20)
 	dc.Fill()
@@ -118,7 +134,7 @@ func drawBlock(dc *gg.Context, x, z int, player types.Player) {
 
 	dc.SetRGB(0, 0, 0)
 
-	avatar, err := loadImageFromURL(player.Head_url)
+	avatar, err := loadImageFromURL(player.Head_url, player.Username, imgCache)
 	if err != nil {
 		log.Println("Error loading avatar:", err)
 		return
@@ -143,7 +159,7 @@ func drawBlock(dc *gg.Context, x, z int, player types.Player) {
 	dc.DrawStringAnchored(player.Username, float64(x+23), float64(z+16), 0, 0)
 }
 
-func RenderTab(players []types.Player) *gg.Context {
+func RenderTab(players []types.Player, imgCache *types.ImageCache) *gg.Context {
 
 	const canvasHeight = 350
 	canvasWidth := calculateCanvasWidth(len(players))
@@ -160,7 +176,7 @@ func RenderTab(players []types.Player) *gg.Context {
 			x = x + 278
 			z = 0
 		}
-		drawBlock(dc, x, z, player)
+		drawBlock(dc, x, z, player, imgCache)
 		z = z + 22
 	}
 
