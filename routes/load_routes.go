@@ -185,6 +185,15 @@ func LoadAndHandleRoutes(router *mux.Router, db *database.Database, logger *logg
 			Pattern:     apiUrl + "/namesearch",
 			HandlerFunc: controller.GetNameSearch,
 		},
+
+		//queries username
+		//description: returns back the whois data for the username
+		//example url: http://localhost:5000/api/v1/whois?username=febzey
+		{
+			Method:      http.MethodGet,
+			Pattern:     apiUrl + "/whois",
+			HandlerFunc: controller.GetWhoIs,
+		},
 	}
 
 	for _, route := range routes {
