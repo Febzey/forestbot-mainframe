@@ -72,7 +72,7 @@ func (c *Controller) handleWebSocketAuth(w http.ResponseWriter, r *http.Request)
 	client := InitializeWebsocketClient(conn, api_key, mc_server)
 
 	//Eventually put this in a function that saves it to a logfile when program exits
-	c.Logger.Info(fmt.Sprintf("Client connected to websocket: %s %s", client.ClientID, api_key))
+	// c.Logger.Info(fmt.Sprintf("Client connected to websocket: %s %s", client.ClientID, api_key))
 
 	c.Mutex.Lock()
 	c.Clients[client.ClientID] = client
