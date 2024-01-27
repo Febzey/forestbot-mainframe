@@ -31,12 +31,14 @@ func (c *Controller) GetTablist(w http.ResponseWriter, r *http.Request) {
 
 	dc := utils.RenderTab(playerList, &c.ImageCache)
 
-	if err := dc.SavePNG("tablist.png"); err != nil {
+	filePath := "tablists/" + server + ".png"
+
+	if err := dc.SavePNG(filePath); err != nil {
 		fmt.Println("Error saving PNG:", err)
 		return
 	}
 
 	//send the image to the client
-	http.ServeFile(w, r, "tablist.png")
+	http.ServeFile(w, r, filePath)
 
 }

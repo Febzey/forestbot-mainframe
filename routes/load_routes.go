@@ -194,6 +194,23 @@ func LoadAndHandleRoutes(router *mux.Router, db *database.Database, logger *logg
 			Pattern:     apiUrl + "/whois",
 			HandlerFunc: controller.GetWhoIs,
 		},
+
+		//Get all the guilds forestbot is in for discord
+		{
+			Method:      http.MethodGet,
+			Pattern:     apiUrl + "/discord/guilds",
+			HandlerFunc: controller.GetDiscordGuilds,
+		},
+
+		//get all live chat channels for our discord bot
+		{
+			Method:      http.MethodGet,
+			Pattern:     apiUrl + "/discord/livechats",
+			HandlerFunc: controller.GetDiscordLiveChatChannels,
+		},
+
+		//////POST REQUESTS//////
+
 	}
 
 	for _, route := range routes {
