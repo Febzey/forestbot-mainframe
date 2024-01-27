@@ -95,18 +95,18 @@ func LoadAndHandleRoutes(router *mux.Router, db *database.Database, logger *logg
 
 		//Quries: name, server
 		//Description: Gets a user by their name
-		//example url: http://localhost:5000/api/v1/userbyname?name=febzey&server=simplyvanilla
+		//example url: http://localhost:5000/api/v1/playername?name=febzey&server=simplyvanilla
 		{
 			Method:      http.MethodGet,
-			Pattern:     apiUrl + "/userbyname",
+			Pattern:     apiUrl + "/playername",
 			HandlerFunc: controller.GetUserByName,
 		},
 		//Quries: uuid, server
 		//Description: Gets a user by their UUID
-		//example url: http://localhost:5000/api/v1/userbyuuid?uuid=30303-addwdwd-222=3333&server=simplyvanilla
+		//example url: http://localhost:5000/api/v1/playeruuid?uuid=30303-addwdwd-222=3333&server=simplyvanilla
 		{
 			Method:      http.MethodGet,
-			Pattern:     apiUrl + "/player",
+			Pattern:     apiUrl + "/playeruuid",
 			HandlerFunc: controller.GetUserByUUID,
 		},
 
