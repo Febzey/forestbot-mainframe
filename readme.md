@@ -1,89 +1,139 @@
-## API Endpoints
+# API Documentation
 
-### Retrieve User by Name and Server
+## GET Requests
 
-- Method: GET
-- Path: `/userbyname/{name}/{server}`
-- Handler Function: `GetUserByNameHandler`
+### Get User by Name
+- **Endpoint:** `/api/v1/playername`
+- **Description:** Gets a user by their name
+- **Example URL:** `http://localhost:5000/api/v1/playername?name=febzey&server=simplyvanilla`
+- **Queries:** 
+  - `name`: The username of the player
+  - `server`: The Minecraft server name
 
-This endpoint retrieves a user by their name and server. It expects the name and server to be provided as path parameters. The response will contain the user information if found, or an error message if not found.
+### Get User by UUID
+- **Endpoint:** `/api/v1/playeruuid`
+- **Description:** Gets a user by their UUID
+- **Example URL:** `http://localhost:5000/api/v1/playeruuid?uuid=30303-addwdwd-222=3333&server=simplyvanilla`
+- **Queries:** 
+  - `uuid`: The UUID of the player
+  - `server`: The Minecraft server name
 
-### Retrieve User by UUID and Server
+### WebSocket Connect
+- **Endpoint:** `/api/v1/websocket/connect`
+- **Description:** WebSocket for real-time data exchange between server and client (playtime, chat, etc.)
 
-- Method: GET
-- Path: `/player/{uuid}/{server}`
-- Handler Function: `GetUserByUUIDHandler`
+### Get Advancements
+- **Endpoint:** `/api/v1/advancements`
+- **Description:** Gets the advancements of a player
+- **Example URL:** `http://localhost:5000/api/v1/advancements?uuid=30303-addwdwd-222=3333&server=simplyvanilla&limit=100&order=DESC`
+- **Queries:** 
+  - `uuid`: The UUID of the player
+  - `server`: The Minecraft server name
+  - `limit`: (Optional) Limit the number of results
+  - `order`: (Optional) Order of results (ASC or DESC)
 
-This endpoint retrieves a user by their UUID and server. It expects the UUID and server to be provided as path parameters. The response will contain the user information if found, or an error message if not found.
+### Get Messages
+- **Endpoint:** `/api/v1/messages`
+- **Description:** Gets the messages for a player
+- **Example URL:** `http://localhost:5000/api/v1/messages?name=febzey&server=simplyvanilla&limit=100&order=DESC`
+- **Queries:** 
+  - `name`: The username of the player
+  - `server`: The Minecraft server name
+  - `limit`: (Optional) Limit the number of results
+  - `order`: (Optional) Order of results (ASC or DESC)
 
-### WebSocket Authentication
+### Get Random Quote
+- **Endpoint:** `/api/v1/quote`
+- **Description:** Get a random quote from a user on a server
+- **Example URL:** `http://localhost:5000/api/v1/quote?name=febzey&server=simplyvanilla`
+- **Queries:** 
+  - `name`: The username of the player
+  - `server`: The Minecraft server name
 
-- Method: GET
-- Path: `/websocket/connect`
-- Handler Function: `HandleWebSocketAuth`
+### Get Tablist
+- **Endpoint:** `/api/v1/tablist`
+- **Description:** Get the tablist for a server
+- **Example URL:** `http://localhost:5000/api/v1/tablist?server=simplyvanilla`
+- **Queries:** 
+  - `server`: The Minecraft server name
 
-This endpoint handles the WebSocket authentication. It establishes a WebSocket connection and performs the necessary authentication steps.
+### Get Deaths
+- **Endpoint:** `/api/v1/deaths`
+- **Description:** Gets the deaths of a player
+- **Example URL:** `http://localhost:5000/api/v1/deaths?uuid=30303-addwdwd-222=3333&server=simplyvanilla&limit=100&order=DESC`
+- **Queries:** 
+  - `uuid`: The UUID of the player
+  - `server`: The Minecraft server name
+  - `limit`: (Optional) Limit the number of results
+  - `order`: (Optional) Order of results (ASC or DESC)
 
-### Retrieve Advancements
+### Get Kills
+- **Endpoint:** `/api/v1/kills`
+- **Description:** Gets the kills of a player
+- **Example URL:** `http://localhost:5000/api/v1/kills?uuid=30303-addwdwd-222=3333&server=simplyvanilla&limit=100&order=DESC`
+- **Queries:** 
+  - `uuid`: The UUID of the player
+  - `server`: The Minecraft server name
+  - `limit`: (Optional) Limit the number of results
+  - `order`: (Optional) Order of results (ASC or DESC)
 
-- Method: GET
-- Path: `/advancements`
-- Handler Function: `GetAdvancementsHandler`
+### Get User Online Check
+- **Endpoint:** `/api/v1/online`
+- **Description:** Checks if a user is online and returns server and true or false
+- **Queries:** 
+  - `username`: The username of the player
 
-This endpoint retrieves a list of advancements achieved by players.
+### Get Name Search
+- **Endpoint:** `/api/v1/namesearch`
+- **Description:** Returns back 6 closest names to the username
+- **Queries:** 
+  - `username`: The username of the player
+  - `server`: (Optional) The Minecraft server name
 
-### Retrieve Messages
+### Get WhoIs
+- **Endpoint:** `/api/v1/whois`
+- **Description:** Returns back the whois data for the username
+- **Example URL:** `http://localhost:5000/api/v1/whois?username=febzey`
+- **Queries:** 
+  - `username`: The username of the player
 
-- Method: GET
-- Path: `/messages`
-- Handler Function: `GetMessagesHandler`
+### Get Discord Guilds
+- **Endpoint:** `/api/v1/discord/guilds`
+- **Description:** Get all the guilds the Discord bot is in
 
-This endpoint retrieves a list of messages sent by users.
+### Get Discord Live Chat Channels
+- **Endpoint:** `/api/v1/discord/livechats`
+- **Description:** Get all live chat channels for the Discord bot
 
-### Retrieve Random Quotes
 
-- Method: GET
-- Path: `/quote`
-- Handler Function: `GetRandomQuotesHandler`
+## POST Requests
 
-This endpoint retrieves a random quote from a collection of quotes.
+### Add Discord Guild
+- **Endpoint:** `/api/v1/discord/addguild`
+- **Description:** Adds a guild to the database
+- **Example URL:** `http://localhost:5000/api/v1/discord/addguild`
+- **Method:** `POST`
+- **Handler Function:** `controller.PostDiscordGuild`
 
-### Retrieve Tablist
+### Add Discord Live Chat
+- **Endpoint:** `/api/v1/discord/addlivechat`
+- **Description:** Adds a live chat channel to the database
+- **Example URL:** `http://localhost:5000/api/v1/discord/addlivechat`
+- **Method:** `POST`
+- **Handler Function:** `controller.PostDiscordLiveChat`
 
-- Method: GET
-- Path: `/tablist`
-- Handler Function: `GetTablistHandler`
+## DELETE Requests
 
-This endpoint retrieves the list of players currently displayed in the tablist.
+### Delete Discord Guild
+- **Endpoint:** `/api/v1/discord/deleteguild`
+- **Description:** Deletes a guild from the database
+- **Example URL:** `http://localhost:5000/api/v1/discord/deleteguild?guild_id=123`
+- **Method:** `DELETE`
+- **Handler Function:** `controller.DeleteDiscordGuild`
 
-### Retrieve Minecraft Deaths
-
-- Method: GET
-- Path: `/deaths`
-- Handler Function: `GetMinecraftDeathsHandler`
-
-This endpoint retrieves a list of deaths recorded in the Minecraft server.
-
-### Retrieve Minecraft Kills
-
-- Method: GET
-- Path: `/kills`
-- Handler Function: `GetMinecraftKillsHandler`
-
-This endpoint retrieves a list of kills recorded in the Minecraft server.
-
-### Check User Online Status
-
-- Method: GET
-- Path: `/online`
-- Handler Function: `GetUserOnlineCheckHandler`
-
-This endpoint checks if a user is online. It expects the username to be provided as a query parameter. The response will indicate whether the user is online or not.
-
-### Search User Names
-
-- Method: GET
-- Path: `/namesearch`
-- Handler Function: `GetNameSearchHandler`
-
-This endpoint searches for user names. It expects the search query to be provided as a query parameter. The response will contain a list of user names matching the search query.
+### Delete Discord Live Chat
+- **Endpoint:** `/api/v1/discord/deletelivechat`
+- **Description:** Deletes a live chat channel from the database
+- **Example URL:** `http://localhost:5000/api/v1/discord/deletelivechat?channel_id=123`
+- **Method:** `DELETE`
+- **Handler Function:** `controller.DeleteDiscordLiveChat`
