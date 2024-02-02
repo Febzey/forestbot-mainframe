@@ -211,6 +211,42 @@ func LoadAndHandleRoutes(router *mux.Router, db *database.Database, logger *logg
 
 		//////POST REQUESTS//////
 
+		//body: {"guild_id": "123", "channel_id": "123", "mc_server": "simplyvanilla", "setup_by": "123", "created_at": "123", "guild_name": "simplyvanilla_discord_server"}
+		//description: adds a guild to the database
+		//example url: http://localhost:5000/api/v1/discord/addguild
+		{
+			Method:      http.MethodPost,
+			Pattern:     apiUrl + "/discord/addguild",
+			HandlerFunc: controller.PostDiscordGuild,
+		},
+		//body: {"guildName": "simplyvanilla_discord_server", "guildID": "123", "channelID": "123", "setupBy": "123", "date": "123", "mcServer": "simplyvanilla"}
+		//description: adds a live chat channel to the database
+		//example url: http://localhost:5000/api/v1/discord/addlivechat
+		{
+			Method:      http.MethodPost,
+			Pattern:     apiUrl + "/discord/addlivechat",
+			HandlerFunc: controller.PostDiscordLiveChat,
+		},
+
+		/////// DELETE REQUESTS ///////
+
+		//queries: guild_id
+		//description: deletes a guild from the database
+		//example url: http://localhost:5000/api/v1/discord/deleteguild?guild_id=123
+		{
+			Method:      http.MethodDelete,
+			Pattern:     apiUrl + "/discord/deleteguild",
+			HandlerFunc: controller.DeleteDiscordGuild,
+		},
+
+		//queries: channel_id
+		//description: deletes a live chat channel from the database
+		//example url: http://localhost:5000/api/v1/discord/deletelivechat?channel_id=123
+		{
+			Method:      http.MethodDelete,
+			Pattern:     apiUrl + "/discord/deletelivechat",
+			HandlerFunc: controller.DeleteDiscordLiveChat,
+		},
 	}
 
 	for _, route := range routes {

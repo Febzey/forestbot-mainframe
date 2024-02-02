@@ -1,20 +1,11 @@
 package routes
 
 import (
-	"database/sql"
 	"net/http"
 
+	"github.com/febzey/ForestBot-Mainframe/types"
 	"github.com/febzey/ForestBot-Mainframe/utils"
 )
-
-type Guild struct {
-	Guild_id   string `json:"guild_id"`
-	Channel_id sql.NullString
-	Mc_server  string `json:"mc_server"`
-	Setup_by   string `json:"setup_by"`
-	Created_at int    `json:"created_at"`
-	Guild_name string `json:"guild_name"`
-}
 
 func (c *Controller) GetDiscordGuilds(w http.ResponseWriter, r *http.Request) {
 
@@ -24,10 +15,10 @@ func (c *Controller) GetDiscordGuilds(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var guilds []Guild
+	var guilds []types.Guild
 	for rows.Next() {
 
-		var guild Guild
+		var guild types.Guild
 		err = rows.Scan(
 			&guild.Guild_id,
 			&guild.Channel_id,

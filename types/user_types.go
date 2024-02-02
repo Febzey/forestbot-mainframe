@@ -26,6 +26,15 @@ type ImageCache struct {
 	Mu sync.RWMutex
 }
 
+type PlayerActivity struct {
+	ID        int    //id
+	UUID      string //uuid
+	Username  string //username
+	Date      int64  // unix timestamp in milliseconds
+	Type      string // join | leave
+	Mc_server string // mc_server
+}
+
 type User struct {
 	Username        string
 	Kills           int64

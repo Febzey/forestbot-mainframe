@@ -3,17 +3,9 @@ package routes
 import (
 	"net/http"
 
+	"github.com/febzey/ForestBot-Mainframe/types"
 	"github.com/febzey/ForestBot-Mainframe/utils"
 )
-
-type LivechatChannels struct {
-	GuildName string `json:"guildName"`
-	GuildID   string `json:"guildID"`
-	ChannelID string `json:"channelID"`
-	Setupby   string `json:"setupBy"`
-	Date      string `json:"date"`
-	Mc_server string `json:"mcServer"`
-}
 
 func (c *Controller) GetDiscordLiveChatChannels(w http.ResponseWriter, r *http.Request) {
 
@@ -24,10 +16,10 @@ func (c *Controller) GetDiscordLiveChatChannels(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	var livechats []LivechatChannels
+	var livechats []types.LivechatChannel
 	for rows.Next() {
 
-		var livechat LivechatChannels
+		var livechat types.LivechatChannel
 		err = rows.Scan(
 			&livechat.GuildName,
 			&livechat.GuildID,

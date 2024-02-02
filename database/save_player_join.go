@@ -1,6 +1,8 @@
 package database
 
 import (
+	"time"
+
 	"github.com/febzey/ForestBot-Mainframe/types"
 )
 
@@ -64,6 +66,20 @@ func (d *Database) SavePlayerJoin(message types.MinecraftPlayerJoinMessage) (*Re
 
 		//if the user does exist, update their join count
 		_, err = d.pool.Exec("UPDATE users SET joins = joins + 1, lastseen = ? WHERE uuid = ? AND mc_server = ?", timestamp, uuid, server)
+		if err != nil {
+			return no_action, err
+		}
+
+		loginEventData := types.PlayerActivity{
+			UUID:      uuid,
+			Username:  user,
+			Date:      time.Now().UnixNano() / int64(time.Millisecond),
+			Type:      "login",
+			Mc_server: server,
+		}
+
+		insertLoginActivity := "INSERT INTO playerActivity(uuid, username, date, type, mc_server) VALUES (?,?,?,?,?)"
+		_, err = d.pool.Exec(insertLoginActivity, loginEventData.UUID, loginEventData.Username, loginEventData.Date, loginEventData.Type, loginEventData.Mc_server)
 		if err != nil {
 			return no_action, err
 		}
