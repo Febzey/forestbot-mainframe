@@ -21,9 +21,18 @@ func (c *Controller) GetMessages(w http.ResponseWriter, r *http.Request) {
 	limit := r.URL.Query().Get("limit")
 	order := r.URL.Query().Get("order")
 
-	if name == "" || server == "" || limit == "" || order == "" {
-		http.Error(w, "Invalid 'name', 'server', 'limit', and 'order' parameter required", http.StatusBadRequest)
+	//if any of these are empty, return a bad request
+	if name == "" || server == "" {
+		http.Error(w, "Invalid 'name', 'server' parameter required. limit & order are optional.", http.StatusBadRequest)
 		return
+	}
+
+	if order == "" {
+		order = "DESC"
+	}
+
+	if limit == "" {
+		limit = "40"
 	}
 
 	limitInt, err := strconv.Atoi(limit)

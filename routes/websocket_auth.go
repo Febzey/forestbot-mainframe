@@ -60,6 +60,9 @@ func InitializeWebsocketClient(conn *websocket.Conn, api_key string, mc_server s
 }
 
 func (c *Controller) handleWebSocketAuth(w http.ResponseWriter, r *http.Request) {
+
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		c.Logger.Error(err.Error())

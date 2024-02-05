@@ -93,6 +93,33 @@ func LoadAndHandleRoutes(router *mux.Router, db *database.Database, logger *logg
 		//Bulk deaths -- DONE
 		//Bulk kills -- done
 
+		//queries: server
+		//Description: Gets the player activity by week day
+		//example url: http://localhost:5000/api/v1/player-activity-by-week-day?server=simplyvanilla
+		{
+			Method:      http.MethodGet,
+			Pattern:     apiUrl + "/player-activity-by-week-day",
+			HandlerFunc: controller.GetPlayerActivityByWeekDay,
+		},
+
+		//queries: server
+		//Description: Gets the player activity by hour
+		//example url: http://localhost:5000/api/v1/player-activity-by-hour?server=simplyvanilla
+		{
+			Method:      http.MethodGet,
+			Pattern:     apiUrl + "/player-activity-by-hour",
+			HandlerFunc: controller.GetHourlyPlayerActivityStats,
+		},
+
+		//queries: username
+		//Description: Gets the player statistics for a user for all servers theyve been see on
+		//example url: http://localhost:5000/api/v1/all-player-stats?username=febzey
+		{
+			Method:      http.MethodGet,
+			Pattern:     apiUrl + "/all-player-stats",
+			HandlerFunc: controller.GetAllPlayerStatisticsByUsername,
+		},
+
 		//Quries: name, server
 		//Description: Gets a user by their name
 		//example url: http://localhost:5000/api/v1/playername?name=febzey&server=simplyvanilla
@@ -153,7 +180,7 @@ func LoadAndHandleRoutes(router *mux.Router, db *database.Database, logger *logg
 			Pattern:     apiUrl + "/tablist",
 			HandlerFunc: controller.GetTablist,
 		},
-		//Quries: uuid, server, limit, order
+		//Quries: uuid, server, limit, order, type (pvp, pve, all)
 		//Description: Gets the deaths of a player
 		//example url: http://localhost:5000/api/v1/deaths?uuid=30303-addwdwd-222=3333&server=simplyvanilla&limit=100&order=DESC
 		{
@@ -195,6 +222,41 @@ func LoadAndHandleRoutes(router *mux.Router, db *database.Database, logger *logg
 			HandlerFunc: controller.GetWhoIs,
 		},
 
+		//queries username
+		//description: returns back the UUID for the username
+		//example url: http://localhost:5000/api/v1/convert-username-to-uuid?username=febzey
+		{
+			Method:      http.MethodGet,
+			Pattern:     apiUrl + "/convert-username-to-uuid",
+			HandlerFunc: controller.ConvertUsernameToUUID,
+		},
+
+		//queries username, server
+		//description: returns back the playtime for the username
+		//example url: http://localhost:5000/api/v1/messagecount?username=febzey&server=simplyvanilla
+		{
+			Method:      http.MethodGet,
+			Pattern:     apiUrl + "/messagecount",
+			HandlerFunc: controller.GetUserMessageCount,
+		},
+
+		//queries username, server, word
+		//description: returns back the word count for the username
+		{
+			Method:      http.MethodGet,
+			Pattern:     apiUrl + "/wordcount",
+			HandlerFunc: controller.GetUserWordOccurence,
+		},
+
+		//get all the top statistics for a server
+		//queries server, limit, statistic, (stastic can be playtime, joins, kills, deaths)
+		//example url: http://localhost:5000/api/v1/topstatistics?server=simplyvanilla&limit=5&statistic=playtime
+		{
+			Method:      http.MethodGet,
+			Pattern:     apiUrl + "/top-statistic",
+			HandlerFunc: controller.GetTopStatistics,
+		},
+
 		//Get all the guilds forestbot is in for discord
 		{
 			Method:      http.MethodGet,
@@ -226,6 +288,15 @@ func LoadAndHandleRoutes(router *mux.Router, db *database.Database, logger *logg
 			Method:      http.MethodPost,
 			Pattern:     apiUrl + "/discord/addlivechat",
 			HandlerFunc: controller.PostDiscordLiveChat,
+		},
+
+		//body: {"username": "febzey", "description": "I am a cool guy"}
+		//description: Sets the description of a user
+		//example url: http://localhost:5000/api/v1/whois_description
+		{
+			Method:      http.MethodPost,
+			Pattern:     apiUrl + "/whois-description",
+			HandlerFunc: controller.POSTIamDescription,
 		},
 
 		/////// DELETE REQUESTS ///////

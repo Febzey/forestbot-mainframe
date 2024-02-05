@@ -67,3 +67,38 @@ func (d *Database) GetUserByName(username string, server string) (types.User, er
 
 	return user, nil
 }
+
+// Getting all stats for a user from database on all servers theyve been seen on by username
+func (d *Database) GetAllPlayerStatisticsByUsername(username string) ([]types.User, error) {
+	var users []types.User
+
+	rows, err := d.Query("SELECT * FROM users WHERE username = ?", username)
+	if err != nil {
+		return users, err
+	}
+
+	for rows.Next() {
+		var user types.User
+		err := rows.Scan(
+			&user.Username,
+			&user.Kills,
+			&user.Deaths,
+			&user.Joindate,
+			&user.LastSeen,
+			&user.UUID,
+			&user.Playtime,
+			&user.Joins,
+			&user.Leaves,
+			&user.LastDeathTime,
+			&user.LastDeathString,
+			&user.MCServer,
+		)
+		if err != nil {
+			return users, err
+		}
+
+		users = append(users, user)
+	}
+
+	return users, nil
+}

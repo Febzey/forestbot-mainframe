@@ -15,16 +15,29 @@ import (
 // DESCRIPTION: Gets the deaths of a player
 // example: http://localhost:5000/api/v1/deaths?uuid=1&server=2&limit=3&order=DESC
 func (c *Controller) GetMinecraftDeaths(w http.ResponseWriter, r *http.Request) {
-	// server := r.URL.Query().Get("server")
+
 	uuid := r.URL.Query().Get("uuid")
+	server := r.URL.Query().Get("server")
 	limit := r.URL.Query().Get("limit")
 	order := r.URL.Query().Get("order")
-	server := r.URL.Query().Get("server")
+	killType := r.URL.Query().Get("type")
 
 	//if any of these are empty, return a bad request
-	if uuid == "" || server == "" || limit == "" || order == "" {
-		http.Error(w, "Invalid 'uuid', 'server', 'limit', and 'order' parameter required", http.StatusBadRequest)
+	if uuid == "" || server == "" {
+		http.Error(w, "Invalid 'uuid', 'server' parameter required. limit & order are optional.", http.StatusBadRequest)
 		return
+	}
+
+	if killType == "" {
+		killType = "all"
+	}
+
+	if order == "" {
+		order = "DESC"
+	}
+
+	if limit == "" {
+		limit = "40"
 	}
 
 	limitInt, err := strconv.Atoi(limit)
@@ -42,7 +55,21 @@ func (c *Controller) GetMinecraftDeaths(w http.ResponseWriter, r *http.Request) 
 	for page := 1; page <= numPages; page++ {
 		offset := (page - 1) * pageSize
 
-		rows, err := c.Database.Query("SELECT * FROM deaths where mc_server = ? AND victimUUID = ? ORDER BY time "+order+" LIMIT ? OFFSET ?", server, uuid, pageSize, offset)
+		SELECT_DEATHS_QUERY := ""
+
+		if killType == "all" {
+			SELECT_DEATHS_QUERY = "SELECT * FROM deaths where mc_server = ? AND victimUUID = ? ORDER BY time " + order + " LIMIT ? OFFSET ?"
+		}
+
+		if killType == "pvp" {
+			SELECT_DEATHS_QUERY = "SELECT * FROM deaths where mc_server = ? AND victimUUID = ? AND type = 'pvp' ORDER BY time " + order + " LIMIT ? OFFSET ?"
+		}
+
+		if killType == "pve" {
+			SELECT_DEATHS_QUERY = "SELECT * FROM deaths where mc_server = ? AND victimUUID = ? AND type = 'pve' ORDER BY time " + order + " LIMIT ? OFFSET ?"
+		}
+
+		rows, err := c.Database.Query(SELECT_DEATHS_QUERY, server, uuid, pageSize, offset)
 		if err != nil {
 			http.Error(w, "Internal Database Error - Please contact Febzey on Discord", http.StatusInternalServerError)
 			c.Logger.Error(err.Error())

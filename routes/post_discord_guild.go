@@ -32,8 +32,4 @@ func (c *Controller) PostDiscordGuild(w http.ResponseWriter, r *http.Request) {
 
 	//we want to get: channel_id, created_at, guild_id, guild_name, mc_server, setup_by, setup_by_name
 
-	//can we access the body of the request?
-	//if we can, we can get the channel_id, created_at, guild_id, guild_name, mc_server, setup_by, setup_by_name
-	//we can then insert this into the database
-
 }
