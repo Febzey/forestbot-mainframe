@@ -41,7 +41,7 @@ type User struct {
 	Deaths          int64
 	Joindate        string
 	LastSeen        sql.NullString
-	UUID            string
+	UUID            sql.NullString
 	Playtime        int64
 	Joins           int64
 	Leaves          int64

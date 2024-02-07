@@ -14,6 +14,7 @@ import (
 // DESCRIPTION: Get a random quote from a user on a server
 // example http://localhost:5000/api/v1/quote?name=Febzey&server=newtest_new1
 func (c *Controller) GetRandomQuotes(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 
 	name := r.URL.Query().Get("name")
 	server := r.URL.Query().Get("server")
