@@ -93,6 +93,15 @@ func LoadAndHandleRoutes(router *mux.Router, db *database.Database, logger *logg
 		//Bulk deaths -- DONE
 		//Bulk kills -- done
 
+		//queries: server username or uuid
+		//Description: Gets the player activity data for a server
+		//example url: http://localhost:5000/api/v1/player-activity-weekly-report?server=simplyvanilla?username=febzey
+		{
+			Method:      http.MethodGet,
+			Pattern:     apiUrl + "/specific-player-activity-weekly-report",
+			HandlerFunc: controller.GetPlayerActivityData,
+		},
+
 		//queries: server
 		//Description: Gets the player activity by week day
 		//example url: http://localhost:5000/api/v1/player-activity-by-week-day?server=simplyvanilla
