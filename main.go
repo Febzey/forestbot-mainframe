@@ -25,6 +25,14 @@ func main() {
 
 	db, err := database.Connect()
 
+	defer func() {
+		err := db.CloseDb()
+		if err != nil {
+			logger.Error(err.Error())
+		}
+		logger.Success("Database connection closed")
+	}()
+
 	logger.Success("Connected to the database")
 
 	if err != nil {

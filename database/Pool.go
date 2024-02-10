@@ -46,16 +46,14 @@ func Connect() (*Database, error) {
 		pool: db,
 	}
 
-	defer func() {
-		if instance.pool != nil {
-			instance.pool.Close()
-		}
-	}()
-
 	return instance, nil
 }
 
 // create a function to easily query the database
 func (db *Database) Query(query string, args ...interface{}) (*sql.Rows, error) {
 	return db.pool.Query(query, args...)
+}
+
+func (db *Database) CloseDb() error {
+	return db.pool.Close()
 }
