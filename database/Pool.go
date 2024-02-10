@@ -42,9 +42,17 @@ func Connect() (*Database, error) {
 		return nil, err
 	}
 
-	return &Database{
+	instance := &Database{
 		pool: db,
-	}, nil
+	}
+
+	defer func() {
+		if instance.pool != nil {
+			instance.pool.Close()
+		}
+	}()
+
+	return instance, nil
 }
 
 // create a function to easily query the database

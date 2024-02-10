@@ -25,6 +25,8 @@ func main() {
 
 	db, err := database.Connect()
 
+	logger.Success("Connected to the database")
+
 	if err != nil {
 		logger.Error(err.Error())
 	}
@@ -40,17 +42,3 @@ func main() {
 	StartServer(server)
 
 }
-
-// players := []types.PlayerList{
-// 	{Name: "Player1", Ping: 100, HeadURL: "https://mc-heads.net/avatar/Player1/16"},
-// }
-
-// dc := utils.RenderTab(players)
-
-// // Determine the directory of the executabl
-// if err := dc.SavePNG("tablist.png"); err != nil {
-// 	fmt.Println("Error saving PNG:", err)
-// 	return
-// }
-
-// fmt.Printf("Tablist image saved successfully")
