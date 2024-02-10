@@ -7,6 +7,10 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
+//TODO: Add a way to handle errors in the database connection (e.g. if the database is down, or if the credentials are wrong, etc.
+//TODO: Add rows.Close() to each query to prevent memory leaks
+//TODO: clean code. Add comments to each function and struct
+
 type Database struct {
 	pool *sql.DB
 }
