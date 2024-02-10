@@ -28,7 +28,7 @@ func main() {
 	defer func() {
 		err := db.CloseDb()
 		if err != nil {
-			logger.Error(err.Error())
+			logger.Error(fmt.Sprint("Error closing database connection", err.Error()))
 		}
 		logger.Success("Database connection closed")
 	}()
