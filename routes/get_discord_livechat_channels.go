@@ -16,6 +16,8 @@ func (c *Controller) GetDiscordLiveChatChannels(w http.ResponseWriter, r *http.R
 		return
 	}
 
+	defer rows.Close()
+
 	var livechats []types.LivechatChannel
 	for rows.Next() {
 

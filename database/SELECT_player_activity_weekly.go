@@ -2,7 +2,22 @@ package database
 
 import "time"
 
-// Total number of logins for each day of the week
+// +--------------+-------------+
+// | COUNT(UUID)  | day_of_week |
+// +--------------+-------------+
+// | 15           | 1           |  -- Sunday
+// | 25           | 2           |  -- Monday
+// | 20           | 3           |  -- Tuesday
+// | 18           | 4           |  -- Wednesday
+// | 30           | 5           |  -- Thursday
+// | 22           | 6           |  -- Friday
+// | 17           | 7           |  -- Saturday
+// +--------------+-------------+
+// In this example:
+
+// On Sunday (day_of_week = 1), 15 players logged in.
+// On Monday (day_of_week = 2), 25 players logged in.
+
 func (db *Database) PlayerActivityWeekResults(mc_server string) (map[string]int, error) {
 
 	rows, err := db.Query(`

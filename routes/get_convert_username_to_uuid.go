@@ -1,7 +1,6 @@
 package routes
 
 import (
-	"database/sql"
 	"net/http"
 
 	"github.com/febzey/ForestBot-Mainframe/utils"
@@ -15,30 +14,37 @@ func (c *Controller) ConvertUsernameToUUID(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	var GET_UUID_FROM_USERNAME_QUERY = "SELECT DISTINCT uuid FROM users WHERE username = ?"
-	rows, err := c.Database.Query(GET_UUID_FROM_USERNAME_QUERY, username)
+	uuid, err := c.Database.ConvertUsernameToUUID(username)
 	if err != nil {
-		http.Error(w, "Internal Database Error - Please contact Febzey on Discord", http.StatusInternalServerError)
+		http.Error(w, "Internal database error - contact febzey", http.StatusInternalServerError)
 		c.Logger.Error(err.Error())
 		return
 	}
 
-	defer rows.Close()
+	// var GET_UUID_FROM_USERNAME_QUERY = "SELECT DISTINCT uuid FROM users WHERE username = ?"
+	// rows, err := c.Database.Query(GET_UUID_FROM_USERNAME_QUERY, username)
+	// if err != nil {
+	// 	http.Error(w, "Internal Database Error - Please contact Febzey on Discord", http.StatusInternalServerError)
+	// 	c.Logger.Error(err.Error())
+	// 	return
+	// }
 
-	type UUID struct {
-		UUID sql.NullString `json:"uuid"`
-	}
+	// defer rows.Close()
 
-	uuid := UUID{}
+	// type UUID struct {
+	// 	UUID sql.NullString `json:"uuid"`
+	// }
 
-	for rows.Next() {
-		err := rows.Scan(&uuid.UUID)
-		if err != nil {
-			http.Error(w, "Internal Database Error - Please contact Febzey on Discord", http.StatusInternalServerError)
-			c.Logger.Error(err.Error())
-			return
-		}
-	}
+	// uuid := UUID{}
+
+	// for rows.Next() {
+	// 	err := rows.Scan(&uuid.UUID)
+	// 	if err != nil {
+	// 		http.Error(w, "Internal Database Error - Please contact Febzey on Discord", http.StatusInternalServerError)
+	// 		c.Logger.Error(err.Error())
+	// 		return
+	// 	}
+	// }
 
 	utils.RespondWithJSON(w, http.StatusOK, uuid)
 

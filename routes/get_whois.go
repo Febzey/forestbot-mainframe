@@ -25,6 +25,8 @@ func (c *Controller) GetWhoIs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	defer rows.Close()
+
 	//we need to create a slice of strings to store the usernames in.
 	var usernames []string
 	var descriptions []string

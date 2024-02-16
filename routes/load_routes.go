@@ -93,6 +93,14 @@ func LoadAndHandleRoutes(router *mux.Router, db *database.Database, logger *logg
 		//Bulk deaths -- DONE
 		//Bulk kills -- done
 
+		//Gets all available servers forestbot has been on
+		//example url: http://localhost:5000/api/v1/all-server
+		{
+			Method:      http.MethodGet,
+			Pattern:     apiUrl + "/all-servers",
+			HandlerFunc: controller.GetAvailableServers,
+		},
+
 		//queries: server username or uuid
 		//Description: Gets the player activity data for a server
 		//example url: http://localhost:5000/api/v1/player-activity-weekly-report?server=simplyvanilla?username=febzey
@@ -103,7 +111,7 @@ func LoadAndHandleRoutes(router *mux.Router, db *database.Database, logger *logg
 		},
 
 		//queries: server
-		//Description: Gets the player activity by week day
+		//Description: Gets the total number of players logged in on each day of the week for a specific server.
 		//example url: http://localhost:5000/api/v1/player-activity-by-week-day?server=simplyvanilla
 		{
 			Method:      http.MethodGet,
@@ -112,7 +120,7 @@ func LoadAndHandleRoutes(router *mux.Router, db *database.Database, logger *logg
 		},
 
 		//queries: server
-		//Description: Gets the player activity by hour
+		//Description: Gets the player count for a specific server by the hour and weekday.
 		//example url: http://localhost:5000/api/v1/player-activity-by-hour?server=simplyvanilla
 		{
 			Method:      http.MethodGet,

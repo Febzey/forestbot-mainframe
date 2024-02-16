@@ -105,6 +105,9 @@ func (c *Controller) GetMinecraftDeaths(w http.ResponseWriter, r *http.Request) 
 
 		}
 
+		// Close the rows for the current page
+		rows.Close()
+
 	}
 
 	utils.RespondWithJSON(w, http.StatusOK, deaths)

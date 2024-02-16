@@ -15,7 +15,20 @@ func (c *Controller) GetAllPlayerStatisticsByUsername(w http.ResponseWriter, r *
 		return
 	}
 
-	userstats, err := c.Database.GetAllPlayerStatisticsByUsername(username)
+	uuid, err := c.Database.ConvertUsernameToUUID(username)
+	if err != nil {
+		http.Error(w, "Internal database error - contact febzey", http.StatusInternalServerError)
+		c.Logger.Error(err.Error())
+		return
+	}
+
+	if uuid == nil || !uuid.UUID.Valid || uuid.UUID.String == "" {
+		http.Error(w, "Cant find the uuid.", http.StatusInternalServerError)
+		return
+	}
+
+	//TODO: change this to uuid based.
+	userstats, err := c.Database.GetAllPlayerStatisticsByUUID(uuid.UUID.String)
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		c.Logger.Error(err.Error())

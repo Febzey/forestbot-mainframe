@@ -13,6 +13,8 @@ func (d *Database) GetUserByUUID(uuid string, server string) (types.User, error)
 		return user, err
 	}
 
+	defer rows.Close()
+
 	for rows.Next() {
 		err := rows.Scan(
 			&user.Username,
@@ -43,6 +45,8 @@ func (d *Database) GetUserByName(username string, server string) (types.User, er
 	if err != nil {
 		return user, err
 	}
+
+	defer rows.Close() // Defer the closing of rows
 
 	for rows.Next() {
 		err := rows.Scan(
@@ -76,6 +80,44 @@ func (d *Database) GetAllPlayerStatisticsByUsername(username string) ([]types.Us
 	if err != nil {
 		return users, err
 	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var user types.User
+		err := rows.Scan(
+			&user.Username,
+			&user.Kills,
+			&user.Deaths,
+			&user.Joindate,
+			&user.LastSeen,
+			&user.UUID,
+			&user.Playtime,
+			&user.Joins,
+			&user.Leaves,
+			&user.LastDeathTime,
+			&user.LastDeathString,
+			&user.MCServer,
+		)
+		if err != nil {
+			return users, err
+		}
+
+		users = append(users, user)
+	}
+
+	return users, nil
+}
+
+func (d *Database) GetAllPlayerStatisticsByUUID(uuid string) ([]types.User, error) {
+	var users []types.User
+
+	rows, err := d.Query("SELECT * FROM users WHERE uuid = ?", uuid)
+	if err != nil {
+		return users, err
+	}
+
+	defer rows.Close()
 
 	for rows.Next() {
 		var user types.User

@@ -86,6 +86,8 @@ func (c *Controller) GetMinecraftKills(w http.ResponseWriter, r *http.Request) {
 
 		}
 
+		rows.Close()
+
 	}
 
 	utils.RespondWithJSON(w, http.StatusOK, kills)

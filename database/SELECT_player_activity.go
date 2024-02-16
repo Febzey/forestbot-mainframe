@@ -2,6 +2,14 @@ package database
 
 import "github.com/febzey/ForestBot-Mainframe/types"
 
+// | UUID            | Date               | type   |
+// |-----------------|--------------------|--------|
+// | abc123          | 1707673202084      | login  |
+// | def456          | 1707673195801      | login  |
+// | ghi789          | 1707673126855      | logout |
+// | jkl012          | 1707673100524      | login  |
+// | ...             | ...                | ...    |
+
 func (d *Database) GetAllPlayerActivity(server string, userOrUuid string, usingUuid bool) (interface{}, error) {
 
 	SELECT_PLAYER_ACTIVITY := `

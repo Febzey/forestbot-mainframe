@@ -33,6 +33,8 @@ func (c *Controller) GetRandomQuotes(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	defer rows.Close()
+
 	var message types.MinecraftChatMessage
 
 	for rows.Next() {
@@ -53,7 +55,5 @@ func (c *Controller) GetRandomQuotes(w http.ResponseWriter, r *http.Request) {
 	}
 
 	utils.RespondWithJSON(w, http.StatusOK, message)
-
-	rows.Close()
 
 }

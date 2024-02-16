@@ -29,6 +29,8 @@ func (c *Controller) GetNameSearch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	defer rows.Close()
+
 	//we need to create a slice of strings to store the usernames in.
 	var usernames []string
 

@@ -12,6 +12,17 @@ type HourlyActivity struct {
 	Logins int
 }
 
+// +------------+-------------+--------------+
+// | user_count | day_of_week | hour_of_day  |
+// +------------+-------------+--------------+
+// | 5          | 1           | 12           |  -- Sunday, 12:00 AM
+// | 8          | 1           | 13           |  -- Sunday, 1:00 PM
+// | 10         | 2           | 14           |  -- Monday, 2:00 PM
+// | ...        | ...         | ...          |
+// +------------+-------------+--------------+
+
+// This table indicates, for example, that on Sunday at 12:00 AM, there were 5 unique players who logged in, and on Sunday at 1:00 PM, there were 8 unique players who logged in. The counts are broken down by the day of the week and hour of the day.
+
 func (c *Database) PlayerActivityHourlyResults(server string) ([]PlayerActivityHourlyResult, error) {
 
 	var SELECT_HOURLY_PLAYER_ACTIVITY = `

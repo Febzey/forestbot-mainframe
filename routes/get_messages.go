@@ -84,6 +84,8 @@ func (c *Controller) GetMessages(w http.ResponseWriter, r *http.Request) {
 
 			messages = append(messages, message)
 		}
+
+		rows.Close()
 	}
 
 	utils.RespondWithJSON(w, http.StatusOK, messages)

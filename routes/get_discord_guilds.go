@@ -15,6 +15,8 @@ func (c *Controller) GetDiscordGuilds(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	defer rows.Close()
+
 	var guilds []types.Guild
 	for rows.Next() {
 
