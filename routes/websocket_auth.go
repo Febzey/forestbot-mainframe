@@ -254,27 +254,28 @@ func ProcessWebsocketMessage(c *Controller) {
 
 			switch data.Action {
 			case "new_name":
-				c.SendMessageToClient(minecraftPlayerJoinMessage.Server, types.WebsocketMessage{
-					Action: "new_name",
-					Data:   map[string]interface{}{"username": data.Data},
+				c.BroadcastMessageToClients(types.WebsocketMessage{
+					Client_id: message.Client_id,
+					Action:    "new_name",
+					Data:      map[string]interface{}{"user": data.Data, "server": c.Clients[message.Client_id].Mc_server},
 				})
 				continue
 
 			case "new_user":
-				c.SendMessageToClient(minecraftPlayerJoinMessage.Server, types.WebsocketMessage{
-					Action: "new_user",
-					Data:   map[string]interface{}{"username": data.Data},
+				c.BroadcastMessageToClients(types.WebsocketMessage{
+					Client_id: message.Client_id,
+					Action:    "new_user",
+					Data:      map[string]interface{}{"user": data.Data, "server": c.Clients[message.Client_id].Mc_server},
 				})
 				continue
 
 			case "none":
+				c.BroadcastMessageToClients(message)
 				continue
 
 			default:
 				c.Logger.Error("Invalid action from database")
 			}
-
-			c.BroadcastMessageToClients(message)
 
 			continue
 
@@ -382,8 +383,6 @@ func ProcessWebsocketMessage(c *Controller) {
 
 				minecraftPlayerListArray[i].Head_url = "https://mc-heads.net/avatar/" + player.Username + "/16"
 			}
-
-			fmt.Println(minecraftPlayerListArray[0])
 
 			c.Mutex.Lock()
 			c.PlayerLists[minecraftPlayerListArray[0].Server] = minecraftPlayerListArray

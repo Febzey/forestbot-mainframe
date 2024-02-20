@@ -8,7 +8,7 @@ import (
 
 type Result struct {
 	Action string
-	Data   string
+	Data   map[string]interface{}
 }
 
 func (d *Database) SavePlayerJoin(message types.MinecraftPlayerJoinMessage) (*Result, error) {
@@ -20,7 +20,7 @@ func (d *Database) SavePlayerJoin(message types.MinecraftPlayerJoinMessage) (*Re
 
 	no_action := &Result{
 		Action: "none",
-		Data:   "",
+		Data:   map[string]interface{}{},
 	}
 
 	//Getting the user to see if they already exist in the database:
@@ -40,7 +40,9 @@ func (d *Database) SavePlayerJoin(message types.MinecraftPlayerJoinMessage) (*Re
 
 		return &Result{
 			Action: "new_user",
-			Data:   user,
+			Data: map[string]interface{}{
+				"username": user,
+			},
 		}, nil
 
 	} else {
@@ -93,7 +95,10 @@ func (d *Database) SavePlayerJoin(message types.MinecraftPlayerJoinMessage) (*Re
 
 			return &Result{
 				Action: "new_name",
-				Data:   userFromDatabase.Username,
+				Data: map[string]interface{}{
+					"old_name": userFromDatabase.Username,
+					"new_name": user,
+				},
 			}, nil
 
 		}

@@ -52,13 +52,29 @@ type MessageChannel struct {
 }
 
 type Controller struct {
-	Database    *database.Database
-	Logger      *logger.Logger
+	//Our main database instance with helper functions.
+	Database *database.Database
+
+	//Logger utility function for nice console logging.
+	Logger *logger.Logger
+
+	//a message channel where each websocket message is sent to.
+	//Global channel for anything websocket.
 	MessageChan chan MessageChannel
-	Clients     map[string]*WebsocketClient
+
+	//List of connected websocket clients
+	//key is their unique ID given when they connect.
+	Clients map[string]*WebsocketClient
+
+	//Player list for each server connected
+	//key would be the name of server
+	//Array is player
 	PlayerLists map[string][]types.Player
-	ImageCache  types.ImageCache
-	Mutex       sync.Mutex
+
+	//Caching images for playerlist / tablist
+	ImageCache types.ImageCache
+
+	Mutex sync.Mutex
 }
 
 func LoadAndHandleRoutes(router *mux.Router, db *database.Database, logger *logger.Logger) {

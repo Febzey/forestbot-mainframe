@@ -69,11 +69,11 @@ type DiscordMessage struct {
 }
 
 type MinecraftChatMessage struct {
-	Name      string `json:"name"`
-	Message   string `json:"message"`
-	Date      sql.NullString
-	Mc_server string `json:"mc_server"`
-	Uuid      string `json:"uuid"`
+	Name      string         `json:"name"`
+	Message   string         `json:"message"`
+	Date      sql.NullString `json:"date"`
+	Mc_server string         `json:"mc_server"`
+	Uuid      string         `json:"uuid"`
 }
 
 type MinecraftAdvancementMessage struct {
@@ -114,6 +114,6 @@ type MinecraftPlayerDeathMessage struct {
 	Type          string          `json:"type"`
 	Mc_server     string          `json:"mc_server"`
 	Id            int
-	VictimUUID    string `json:"victimUUID"`
-	MurdererUUID  *sql.NullString
+	VictimUUID    string          `json:"victimUUID"`
+	MurdererUUID  *sql.NullString `json:"murdererUUID"`
 }
