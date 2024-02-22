@@ -1,3 +1,10 @@
+/******
+
+	This is the websocket controller.
+	Handling everything websocket.
+
+******/
+
 package routes
 
 import (
@@ -17,12 +24,12 @@ var upgrader = websocket.Upgrader{
 	CheckOrigin:     func(*http.Request) bool { return true }, //TODO: change this to only allow connections from our domain
 }
 
-func InitializeWebsocketClient(conn *websocket.Conn, api_key string, mc_server string) *WebsocketClient {
+func (c *Controller) InitializeWebsocketClient(conn *websocket.Conn, api_key string, mc_server string) *WebsocketClient {
 
 	client_id, err := utils.RandomUUID()
 	if err != nil {
 		fmt.Println(err.Error())
-		sendMessageByStructure(conn, types.WebsocketMessage{
+		c.SendMessageByStructure(conn, types.WebsocketMessage{
 			Client_id: client_id,
 			Action:    "error",
 			Data:      "Error generating client_id - Internal server error",
@@ -33,16 +40,17 @@ func InitializeWebsocketClient(conn *websocket.Conn, api_key string, mc_server s
 
 	if mc_server == "" || api_key == "" {
 		errorMessage := "Missing required headers: client-id, x-api-key - closing the connection"
-		sendMessageByStructure(conn, types.WebsocketMessage{
+		c.SendMessageByStructure(conn, types.WebsocketMessage{
 			Client_id: client_id,
 			Action:    "error",
 			Data:      errorMessage,
 		})
 		//close connection
 		conn.Close()
+		return nil
 	}
 
-	sendMessageByStructure(conn, types.WebsocketMessage{
+	c.SendMessageByStructure(conn, types.WebsocketMessage{
 		Client_id: client_id,
 		Action:    "id",
 		Data:      client_id,
@@ -59,6 +67,12 @@ func InitializeWebsocketClient(conn *websocket.Conn, api_key string, mc_server s
 
 }
 
+func (c *Controller) handleUserDisconnect(client_id string) {
+	c.Mutex.Lock()
+	delete(c.Clients, client_id)
+	c.Mutex.Unlock()
+}
+
 func (c *Controller) handleWebSocketAuth(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -72,10 +86,9 @@ func (c *Controller) handleWebSocketAuth(w http.ResponseWriter, r *http.Request)
 	mc_server := r.URL.Query().Get("server")
 	api_key := r.URL.Query().Get("x-api-key")
 
-	client := InitializeWebsocketClient(conn, api_key, mc_server)
+	client := c.InitializeWebsocketClient(conn, api_key, mc_server)
 
-	//Eventually put this in a function that saves it to a logfile when program exits
-	// c.Logger.Info(fmt.Sprintf("Client connected to websocket: %s %s", client.ClientID, api_key))
+	c.Logger.WebsocketConnect((fmt.Sprintf("Websocket Client Connected For Minecraft Server: %s | ID: %s ", mc_server, client.ClientID)))
 
 	c.Mutex.Lock()
 	c.Clients[client.ClientID] = client
@@ -90,16 +103,26 @@ func (c *Controller) handleWebSocketAuth(w http.ResponseWriter, r *http.Request)
 	for {
 		_, p, err := conn.ReadMessage()
 		if err != nil {
-			c.Logger.Error(err.Error())
-			return
-		}
+			if closeErr, ok := err.(*websocket.CloseError); ok {
+				c.Logger.WebsocketDisconnect(fmt.Sprintf("Client: %s, Code: %d, Text: %s", client.ClientID, closeErr.Code, closeErr.Text))
+			} else {
+				c.Logger.Error(err.Error())
+			}
 
-		//check if client has permissions to write data
+			c.handleUserDisconnect(client.ClientID)
+			break
+		}
+		// if err != nil {
+		// 	c.Logger.Error(err.Error())
+
+		// 	return
+		// }
+
 		if !client.Permissions.Write {
 			c.Logger.Error("Client does not have permission to write data")
 			//send message to client
 			errorMessage := "Client does not have permission to write data"
-			sendMessageByStructure(conn, types.WebsocketMessage{
+			c.SendMessageByStructure(conn, types.WebsocketMessage{
 				Client_id: client.ClientID,
 				Action:    "error",
 				Data:      errorMessage,
@@ -116,7 +139,7 @@ func (c *Controller) handleWebSocketAuth(w http.ResponseWriter, r *http.Request)
 
 			//send a message back to the client telling them their message structure was invalid
 			errorMessage := "Invalid message structure"
-			sendMessageByStructure(conn, types.WebsocketMessage{
+			c.SendMessageByStructure(conn, types.WebsocketMessage{
 				Client_id: client.ClientID,
 				Action:    "error",
 				Data:      errorMessage,
@@ -132,8 +155,12 @@ func (c *Controller) handleWebSocketAuth(w http.ResponseWriter, r *http.Request)
 	}
 }
 
-// This function is handling messages sent to our websocket server
-// example: messages sent from our minecraft bots or discord live chat!
+/*
+*
+Handling all inbound websocket messages.
+The client must send their client_id with each message.
+*
+*/
 func ProcessWebsocketMessage(c *Controller) {
 	for {
 		messageChannel := <-c.MessageChan
@@ -142,43 +169,54 @@ func ProcessWebsocketMessage(c *Controller) {
 		realClientID := messageChannel.ClientID
 
 		if _, ok := c.Clients[message.Client_id]; !ok {
-
-			c.Logger.Error("Client with client_id: " + message.Client_id + " does not exist")
-
-			sendMessageByStructure(c.Clients[realClientID].Conn, types.WebsocketMessage{
+			c.Logger.WebsocketError("Client with client_id: " + message.Client_id + " does not exist")
+			c.SendMessageByStructure(c.Clients[realClientID].Conn, types.WebsocketMessage{
 				Client_id: realClientID,
 				Action:    "error",
 				Data:      "Client with client_id: " + message.Client_id + " does not exist",
 			})
-
 			continue
-
 		}
 
 		switch message.Action {
 
-		//Handling discord chat messages and sending them to our clients
+		/************************
+
+
+		Handling all inbound Discord Chat Messages
+		Saving to database and then broadcasting the message back
+		to each client incase they want the message also.
+
+
+		************************/
 		case "inbound_discord_chat":
 			var discordMessage types.DiscordMessage
 			if err := mapstructure.Decode(message.Data, &discordMessage); err != nil {
 				c.Logger.Error(err.Error())
-				sendMessageByStructure(c.Clients[message.Client_id].Conn, types.WebsocketMessage{
+				c.SendMessageByStructure(c.Clients[message.Client_id].Conn, types.WebsocketMessage{
 					Client_id: message.Client_id,
 					Action:    "error",
 					Data:      "Invalid message structure for inbound_discord_chat",
 				})
 				continue
 			}
-			c.Logger.Info("Discord chat message recieved from client: " + fmt.Sprintf("%v", discordMessage))
+			c.Logger.WebsocketInfo("Discord chat message recieved from client: " + fmt.Sprintf("%v", discordMessage))
 			c.BroadcastMessageToClients(message)
 			continue
+		/************************
 
-		//Handling minecraft chat messages and sending them to our clients and saving in database.
+
+		Handling all inbound Minecraft Chat Messages
+		Saving to database and then broadcasting the message back
+		to each client incase they want the message also.
+
+
+		************************/
 		case "inbound_minecraft_chat":
 			var minecraftChatMessage types.MinecraftChatMessage
 			if err := mapstructure.Decode(message.Data, &minecraftChatMessage); err != nil {
 				c.Logger.Error(err.Error()) //i think its a bug
-				sendMessageByStructure(c.Clients[message.Client_id].Conn, types.WebsocketMessage{
+				c.SendMessageByStructure(c.Clients[message.Client_id].Conn, types.WebsocketMessage{
 					Client_id: message.Client_id,
 					Action:    "error",
 					Data:      "Invalid message structure for inbound_minecraft_chat",
@@ -186,11 +224,11 @@ func ProcessWebsocketMessage(c *Controller) {
 				continue
 			}
 
-			c.Logger.Info("Minecraft chat message recieved from client: " + fmt.Sprintf("%v", minecraftChatMessage))
+			c.Logger.WebsocketInfo("Minecraft chat message recieved from client: " + fmt.Sprintf("%v", minecraftChatMessage))
 			err := c.Database.SaveMinecraftChatMessage(minecraftChatMessage)
 			if err != nil {
 				c.Logger.Error(err.Error())
-				sendMessageByStructure(c.Clients[message.Client_id].Conn, types.WebsocketMessage{
+				c.SendMessageByStructure(c.Clients[message.Client_id].Conn, types.WebsocketMessage{
 					Client_id: message.Client_id,
 					Action:    "error",
 					Data:      "Error saving minecraft chat message to database",
@@ -200,24 +238,31 @@ func ProcessWebsocketMessage(c *Controller) {
 			c.BroadcastMessageToClients(message)
 			continue
 
-		//Handling minecraft advancement messages and sending them to our clients and saving in database.
+		/************************
+
+
+		Handling all inbound Minecraft Advancement Messages,
+		we save to database and then broadcast.
+
+
+		************************/
 		case "minecraft_advancement":
 			var minecraftAdvancementMessage types.MinecraftAdvancementMessage
 			if err := mapstructure.Decode(message.Data, &minecraftAdvancementMessage); err != nil {
 				c.Logger.Error(err.Error())
-				sendMessageByStructure(c.Clients[message.Client_id].Conn, types.WebsocketMessage{
+				c.SendMessageByStructure(c.Clients[message.Client_id].Conn, types.WebsocketMessage{
 					Client_id: message.Client_id,
 					Action:    "error",
 					Data:      "Invalid message structure for minecraft_advancement",
 				})
 				continue
 			}
-			c.Logger.Info("Minecraft advancement message recieved from client: " + fmt.Sprintf("%v", minecraftAdvancementMessage))
+			c.Logger.WebsocketInfo("Minecraft advancement message recieved from client: " + fmt.Sprintf("%v", minecraftAdvancementMessage))
 
 			err := c.Database.SaveMinecraftAdvancementMessage(minecraftAdvancementMessage)
 			if err != nil {
 				c.Logger.Error(err.Error())
-				sendMessageByStructure(c.Clients[message.Client_id].Conn, types.WebsocketMessage{
+				c.SendMessageByStructure(c.Clients[message.Client_id].Conn, types.WebsocketMessage{
 					Client_id: message.Client_id,
 					Action:    "error",
 					Data:      "Error saving minecraft advancement message to database",
@@ -228,29 +273,48 @@ func ProcessWebsocketMessage(c *Controller) {
 
 			continue
 
-		//Handling minecraft player join messages and sending them to our clients and saving in database.
+		/************************
+
+
+		Handling all inbound Minecraft Player Join Messages,
+		we save to database, update their lastseen, join count,
+		we also check to see if the user has changed their name,
+		we also check if the user has never been seen before,
+		we send appropriate message actions if those cases are found.
+		we then broadcast the join message to all clients.
+
+
+		************************/
 		case "minecraft_player_join":
 			var minecraftPlayerJoinMessage types.MinecraftPlayerJoinMessage
 			if err := mapstructure.Decode(message.Data, &minecraftPlayerJoinMessage); err != nil {
 				c.Logger.Error(err.Error())
-				sendMessageByStructure(c.Clients[message.Client_id].Conn, types.WebsocketMessage{
+				c.SendMessageByStructure(c.Clients[message.Client_id].Conn, types.WebsocketMessage{
 					Client_id: message.Client_id,
 					Action:    "error",
 					Data:      "Invalid message structure for minecraft_player_join",
 				})
 				continue
 			}
-			c.Logger.Info("Minecraft player join message recieved from client: " + fmt.Sprintf("%v", minecraftPlayerJoinMessage))
+			c.Logger.WebsocketInfo("Minecraft player join message recieved from client: " + fmt.Sprintf("%v", minecraftPlayerJoinMessage))
 
 			data, err := c.Database.SavePlayerJoin(minecraftPlayerJoinMessage)
 			if err != nil {
 				c.Logger.Error(err.Error())
-				sendMessageByStructure(c.Clients[message.Client_id].Conn, types.WebsocketMessage{
+				c.SendMessageByStructure(c.Clients[message.Client_id].Conn, types.WebsocketMessage{
 					Client_id: message.Client_id,
 					Action:    "error",
 					Data:      "Error saving minecraft player join message to database",
 				})
 			}
+
+			c.addUserToPlayerList(minecraftPlayerJoinMessage.Server, types.Player{
+				Username: minecraftPlayerJoinMessage.Username,
+				Uuid:     minecraftPlayerJoinMessage.Uuid,
+				Latency:  minecraftPlayerJoinMessage.Latency,
+				Server:   minecraftPlayerJoinMessage.Server,
+				Head_url: head_url + minecraftPlayerJoinMessage.Username + "/16",
+			})
 
 			switch data.Action {
 			case "new_name":
@@ -279,12 +343,22 @@ func ProcessWebsocketMessage(c *Controller) {
 
 			continue
 
-		//Handling minecraft player leave messages and sending them to our clients and saving in database.
+		/************************
+
+
+		Handling inbound player leave messages,
+		we update lastseen and leave count in database,
+		here we also will remove the player from the servers player list
+		that they just left from.
+		we then broadcast the message to all clients.
+
+
+		************************/
 		case "minecraft_player_leave":
 			var minecraftPlayerLeaveMessage types.MinecraftPlayerLeaveMessage
 			if err := mapstructure.Decode(message.Data, &minecraftPlayerLeaveMessage); err != nil {
 				c.Logger.Error(err.Error())
-				sendMessageByStructure(c.Clients[message.Client_id].Conn, types.WebsocketMessage{
+				c.SendMessageByStructure(c.Clients[message.Client_id].Conn, types.WebsocketMessage{
 					Client_id: message.Client_id,
 					Action:    "error",
 					Data:      "Invalid message structure for minecraft_player_leave",
@@ -292,26 +366,37 @@ func ProcessWebsocketMessage(c *Controller) {
 
 				continue
 			}
-			c.Logger.Info("Minecraft player leave message recieved from client: " + fmt.Sprintf("%v", minecraftPlayerLeaveMessage))
+			c.Logger.WebsocketInfo("Minecraft player leave message recieved from client: " + fmt.Sprintf("%v", minecraftPlayerLeaveMessage))
 			err := c.Database.SavePlayerLeave(minecraftPlayerLeaveMessage)
 			if err != nil {
 				c.Logger.Error(err.Error())
-				sendMessageByStructure(c.Clients[message.Client_id].Conn, types.WebsocketMessage{
+				c.SendMessageByStructure(c.Clients[message.Client_id].Conn, types.WebsocketMessage{
 					Client_id: message.Client_id,
 					Action:    "error",
 					Data:      "Error saving minecraft player leave message to database",
 				})
 			}
+
+			c.removeUserFromPlayerList(minecraftPlayerLeaveMessage.Server, minecraftPlayerLeaveMessage.Username)
+
 			c.BroadcastMessageToClients(message)
 
 			continue
 
-		//Handling minecraft player death messages and sending them to our clients and saving in database.
+		/************************
+
+
+		Handling player death messages, we save to database,
+		either PVP or PVE death messages.
+		we then broadcast back to all clients.
+
+
+		************************/
 		case "minecraft_player_death":
 			var minecraftPlayerDeathMessage types.MinecraftPlayerDeathMessage
 			if err := mapstructure.Decode(message.Data, &minecraftPlayerDeathMessage); err != nil {
 				c.Logger.Error(err.Error())
-				sendMessageByStructure(c.Clients[message.Client_id].Conn, types.WebsocketMessage{
+				c.SendMessageByStructure(c.Clients[message.Client_id].Conn, types.WebsocketMessage{
 					Client_id: message.Client_id,
 					Action:    "error",
 					Data:      "Invalid message structure for minecraft_player_death",
@@ -321,12 +406,12 @@ func ProcessWebsocketMessage(c *Controller) {
 
 				continue
 			}
-			c.Logger.Info("Minecraft player death message recieved from client: " + fmt.Sprintf("%v", minecraftPlayerDeathMessage))
+			c.Logger.WebsocketInfo("Minecraft player death message recieved from client: " + fmt.Sprintf("%v", minecraftPlayerDeathMessage))
 
 			err := c.Database.InsertPlayerDeathOrKill(minecraftPlayerDeathMessage)
 			if err != nil {
 				c.Logger.Error(err.Error())
-				sendMessageByStructure(c.Clients[message.Client_id].Conn, types.WebsocketMessage{
+				c.SendMessageByStructure(c.Clients[message.Client_id].Conn, types.WebsocketMessage{
 					Client_id: message.Client_id,
 					Action:    "error",
 					Data:      "Error saving minecraft player death message to database",
@@ -336,12 +421,22 @@ func ProcessWebsocketMessage(c *Controller) {
 
 			continue
 
-		//Handling minecraft player list, updating each players playtime and saving in database. while updating our playerlist map
+		/************************
+
+
+		This action allows our minecraft bots to send a
+		updated player list to our websocket every 60000 milliseconds (60 seconds),
+		we will update the c.PlayerLists with the server that sent this action,
+		we also will run a function that updates all users playtime by 60000 seconds.
+		For this action to work properly it is up to the bot owner to send this action every 60 seconds.
+
+
+		************************/
 		case "send_update_player_list":
 			dataMap, ok := message.Data.(map[string]interface{})
 			if !ok {
 				c.Logger.Error("Expected 'data' field to be a map[string]interface{}")
-				sendMessageByStructure(c.Clients[message.Client_id].Conn, types.WebsocketMessage{
+				c.SendMessageByStructure(c.Clients[message.Client_id].Conn, types.WebsocketMessage{
 					Client_id: message.Client_id,
 					Action:    "error",
 					Data:      "Invalid message structure for send_update_player_list",
@@ -361,7 +456,7 @@ func ProcessWebsocketMessage(c *Controller) {
 
 			if err := mapstructure.Decode(playersArray, &minecraftPlayerListArray); err != nil {
 				c.Logger.Error(err.Error())
-				sendMessageByStructure(c.Clients[message.Client_id].Conn, types.WebsocketMessage{
+				c.SendMessageByStructure(c.Clients[message.Client_id].Conn, types.WebsocketMessage{
 					Client_id: message.Client_id,
 					Action:    "error",
 					Data:      "Invalid message structure for send_update_player_list",
@@ -370,28 +465,35 @@ func ProcessWebsocketMessage(c *Controller) {
 			}
 
 			//we want to run a function that will update player playtime by 60000 milliseconds which is 1 minute
-			for i, player := range minecraftPlayerListArray {
+			for _, player := range minecraftPlayerListArray {
 				err := c.Database.UpdatePlayerPlaytime(player.Uuid, player.Server)
 				if err != nil {
 					c.Logger.Error(err.Error())
-					sendMessageByStructure(c.Clients[message.Client_id].Conn, types.WebsocketMessage{
+					c.SendMessageByStructure(c.Clients[message.Client_id].Conn, types.WebsocketMessage{
 						Client_id: message.Client_id,
 						Action:    "error",
 						Data:      "Error updating player playtime in database",
 					})
 				}
 
-				minecraftPlayerListArray[i].Head_url = "https://mc-heads.net/avatar/" + player.Username + "/16"
+				player.Head_url = head_url + player.Username + "/16"
+
+				c.addUserToPlayerList(player.Server, player)
 			}
 
-			c.Mutex.Lock()
-			c.PlayerLists[minecraftPlayerListArray[0].Server] = minecraftPlayerListArray
-			c.Mutex.Unlock()
+			continue
 
+		/************************
+
+
+		We will send this back to the client if they sent
+		an unknown message action.
+
+
+		************************/
 		default:
 			{
-				c.Logger.Error("Invalid message action")
-				sendMessageByStructure(c.Clients[message.Client_id].Conn, types.WebsocketMessage{
+				c.SendMessageByStructure(c.Clients[message.Client_id].Conn, types.WebsocketMessage{
 					Client_id: message.Client_id,
 					Action:    "error",
 					Data:      "Invalid message action - not a valid action",
@@ -405,24 +507,10 @@ func ProcessWebsocketMessage(c *Controller) {
 	}
 }
 
-// This is a function that allows us to send client specific messages.
-// As in we can send a message to a specific client by their client_id
-func (c *Controller) SendMessageToClient(client_id string, message types.WebsocketMessage) {
-	c.Mutex.Lock()
-	client, ok := c.Clients[client_id]
-	c.Mutex.Unlock()
-	if !ok {
-		c.Logger.Error("Client with client_id: " + client_id + " does not exist")
-	}
-
-	if err := client.Conn.WriteJSON(message); err != nil {
-		c.Logger.Error(err.Error())
-	}
-
-}
-
-// This function is used to broadcast a message
-// to every single client connected to our server
+/*
+With this function we are able to send a message
+to every websocket client connected to our server.
+*/
 func (c *Controller) BroadcastMessageToClients(message types.WebsocketMessage) {
 	c.Mutex.Lock()
 	defer c.Mutex.Unlock()
@@ -436,14 +524,58 @@ func (c *Controller) BroadcastMessageToClients(message types.WebsocketMessage) {
 	}
 }
 
-func SendWebsocketError(conn *websocket.Conn, errorMessage string) error {
-	return conn.WriteMessage(websocket.TextMessage, []byte(errorMessage))
-}
-
-func sendMessageByStructure(conn *websocket.Conn, message types.WebsocketMessage) error {
+/*
+This function allows us to send a message to specific
+websocket connection, while following our websocket message structure.
+*/
+func (c *Controller) SendMessageByStructure(conn *websocket.Conn, message types.WebsocketMessage) error {
 	err := conn.WriteJSON(message)
 	if err != nil {
 		fmt.Println(err.Error())
 	}
 	return nil
+}
+
+/*
+Removing a specific user from a specific servers c.PlayerLists
+if the user and the server are present in the map
+*/
+func (c *Controller) removeUserFromPlayerList(serverName string, usernameToRemove string) {
+	c.Mutex.Lock()
+	defer c.Mutex.Unlock()
+
+	if playerList, ok := c.PlayerLists[serverName]; ok {
+		var updatedPlayerList []types.Player
+
+		for _, player := range playerList {
+			if player.Username != usernameToRemove {
+				updatedPlayerList = append(updatedPlayerList, player)
+			}
+		}
+
+		c.PlayerLists[serverName] = updatedPlayerList
+	}
+}
+
+/*
+Adding a user to the c.PlayerLists map.
+If the server doesnt exist as a key in c.PlayerLists,
+we will create a new one and add the user.
+*/
+func (c *Controller) addUserToPlayerList(serverName string, newPlayer types.Player) {
+	c.Mutex.Lock()
+	defer c.Mutex.Unlock()
+
+	if playerList, ok := c.PlayerLists[serverName]; ok {
+		for i, player := range playerList {
+			if player.Username == newPlayer.Username {
+				c.PlayerLists[serverName][i] = newPlayer
+				return
+			}
+		}
+
+		c.PlayerLists[serverName] = append(playerList, newPlayer)
+	} else {
+		c.PlayerLists[serverName] = []types.Player{newPlayer}
+	}
 }

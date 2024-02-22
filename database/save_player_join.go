@@ -33,7 +33,7 @@ func (d *Database) SavePlayerJoin(message types.MinecraftPlayerJoinMessage) (*Re
 	//check if the user does not exist
 	if !rows.Next() {
 		//if the user does not exist, create them
-		_, err := d.pool.Exec("INSERT INTO users(username, joindate, uuid, joins, mc_server) VALUES (?,?,?,?,?)", user, timestamp, uuid, 1, server)
+		_, err := d.pool.Exec("INSERT INTO users(username, joindate, uuid, joins, mc_server, lastseen) VALUES (?,?,?,?,?,?)", user, timestamp, uuid, 1, server, timestamp)
 		if err != nil {
 			return no_action, err
 		}

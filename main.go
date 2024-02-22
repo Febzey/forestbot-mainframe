@@ -13,6 +13,22 @@ import (
 	"github.com/joho/godotenv"
 )
 
+var (
+	ascii_art_start_message = `
+	
+███████╗ ██████╗ ██████╗ ███████╗███████╗████████╗██████╗  ██████╗ ████████╗     ██████╗██████╗     ███████╗███████╗██████╗ ██╗   ██╗███████╗██████╗     
+██╔════╝██╔═══██╗██╔══██╗██╔════╝██╔════╝╚══██╔══╝██╔══██╗██╔═══██╗╚══██╔══╝    ██╔════╝╚════██╗    ██╔════╝██╔════╝██╔══██╗██║   ██║██╔════╝██╔══██╗    
+█████╗  ██║   ██║██████╔╝█████╗  ███████╗   ██║   ██████╔╝██║   ██║   ██║       ██║      █████╔╝    ███████╗█████╗  ██████╔╝██║   ██║█████╗  ██████╔╝    
+██╔══╝  ██║   ██║██╔══██╗██╔══╝  ╚════██║   ██║   ██╔══██╗██║   ██║   ██║       ██║     ██╔═══╝     ╚════██║██╔══╝  ██╔══██╗╚██╗ ██╔╝██╔══╝  ██╔══██╗    
+██║     ╚██████╔╝██║  ██║███████╗███████║   ██║   ██████╔╝╚██████╔╝   ██║       ╚██████╗███████╗    ███████║███████╗██║  ██║ ╚████╔╝ ███████╗██║  ██║    
+╚═╝      ╚═════╝ ╚═╝  ╚═╝╚══════╝╚══════╝   ╚═╝   ╚═════╝  ╚═════╝    ╚═╝        ╚═════╝╚══════╝    ╚══════╝╚══════╝╚═╝  ╚═╝  ╚═══╝  ╚══════╝╚═╝  ╚═╝                                                                                                                                                	
+
+
+
+
+`
+)
+
 func main() {
 	err := godotenv.Load()
 	if err != nil {
@@ -24,14 +40,6 @@ func main() {
 	}
 
 	db, err := database.Connect()
-
-	defer func() {
-		err := db.CloseDb()
-		if err != nil {
-			logger.Error(fmt.Sprint("Error closing database connection", err.Error()))
-		}
-		logger.Success("Database connection closed")
-	}()
 
 	logger.Success("Connected to the database")
 
@@ -46,7 +54,17 @@ func main() {
 
 	r.Use(mux.CORSMethodMiddleware(r))
 
+	logger.Info(fmt.Sprintf("Server is Starting on port: %s", os.Getenv("SERVER_PORT")))
+
+	fmt.Println(ascii_art_start_message)
+
 	server := ServerConfig(r)
 	StartServer(server)
 
+	err = db.CloseDb()
+	if err != nil {
+		logger.Error(fmt.Sprint("Error closing database connection", err.Error()))
+	}
+	logger.Info("Database connection closed")
+	logger.Info("Server has stopped.")
 }

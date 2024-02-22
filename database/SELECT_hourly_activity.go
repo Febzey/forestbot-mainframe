@@ -1,12 +1,10 @@
 package database
 
-// PlayerActivityHourlyResult represents a single result entry for the hourly player activity.
 type PlayerActivityHourlyResult struct {
 	Weekday  int
 	Activity []HourlyActivity
 }
 
-// HourlyActivity represents the hourly activity data.
 type HourlyActivity struct {
 	Hour   int
 	Logins int

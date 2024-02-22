@@ -1,22 +1,21 @@
 package utils
 
-import "os"
+import (
+	"os"
 
-type APIPermissions struct {
-	Read  bool
-	Write bool
-}
+	"github.com/febzey/ForestBot-Mainframe/types"
+)
 
-func CheckApiKey(api_key string) APIPermissions {
+func CheckApiKey(api_key string) types.APIPermissions {
 	apiKeyType := determineAPIKeyType(api_key)
 
 	switch apiKeyType {
 	case "read_write":
-		return APIPermissions{Read: true, Write: true}
+		return types.APIPermissions{Read: true, Write: true}
 	case "read_only":
-		return APIPermissions{Read: true, Write: false}
+		return types.APIPermissions{Read: true, Write: false}
 	default:
-		return APIPermissions{Read: false, Write: false}
+		return types.APIPermissions{Read: false, Write: false}
 	}
 
 }

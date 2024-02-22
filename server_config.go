@@ -48,7 +48,6 @@ func ServerConfig(router *mux.Router) *http.Server {
 
 func StartServer(server *http.Server) {
 	go func() {
-		log.Println("Starting server...")
 		if err := server.ListenAndServe(); err != nil {
 			log.Fatal(err)
 		}
@@ -58,7 +57,4 @@ func StartServer(server *http.Server) {
 	signal.Notify(c, os.Interrupt)
 
 	<-c
-
-	log.Println("Stopping server...")
-
 }

@@ -8,9 +8,13 @@ import (
 	"github.com/febzey/ForestBot-Mainframe/database"
 	"github.com/febzey/ForestBot-Mainframe/logger"
 	"github.com/febzey/ForestBot-Mainframe/types"
-	"github.com/febzey/ForestBot-Mainframe/utils"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
+)
+
+var (
+	apiUrl   = "/api/v1"
+	head_url = "https://mc-heads.net/avatar/"
 )
 
 type Route struct {
@@ -33,7 +37,7 @@ type WebsocketClient struct {
 	//Here is going to be our Permissions. One api key will have all permissions.
 	//The other api key will only have read data permissions.
 	//Permssion types can be: read_data, write_data
-	Permissions utils.APIPermissions
+	Permissions types.APIPermissions
 
 	//The minecraft server the websocket is being used for.
 	Mc_server string
@@ -77,10 +81,8 @@ type Controller struct {
 	Mutex sync.Mutex
 }
 
-func LoadAndHandleRoutes(router *mux.Router, db *database.Database, logger *logger.Logger) {
-
-	//main controller that is passed to all of our routes.
-	controller := &Controller{
+func NewController(db *database.Database, logger *logger.Logger) *Controller {
+	return &Controller{
 		Database:    db,
 		Logger:      logger,
 		MessageChan: make(chan MessageChannel),
@@ -91,13 +93,17 @@ func LoadAndHandleRoutes(router *mux.Router, db *database.Database, logger *logg
 		},
 		Mutex: sync.Mutex{},
 	}
+}
+
+func LoadAndHandleRoutes(router *mux.Router, db *database.Database, logger *logger.Logger) {
+
+	//main controller that is passed to all of our routes.
+	controller := NewController(db, logger)
 
 	//this is a sick ideayes
 	//so this function will run always :D //always watching the MessageChan
 	//lets see if it works!
 	go ProcessWebsocketMessage(controller)
-
-	var apiUrl = "/api/v1"
 
 	var routes = []Route{
 

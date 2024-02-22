@@ -90,6 +90,7 @@ type MinecraftPlayerJoinMessage struct {
 	Uuid      string `json:"uuid"`
 	Timestamp string `json:"timestamp"`
 	Server    string `json:"server"`
+	Latency   int    `json:"latency"`
 }
 
 type MinecraftPlayerLeaveMessage struct {
