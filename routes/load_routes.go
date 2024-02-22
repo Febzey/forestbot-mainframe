@@ -98,6 +98,10 @@ func NewController(db *database.Database, logger *logger.Logger) *Controller {
 func LoadAndHandleRoutes(router *mux.Router, db *database.Database, logger *logger.Logger) {
 
 	//main controller that is passed to all of our routes.
+
+	//TODO: work on CLI, work on returning the controller from this function,
+	//then in the main function we can pass controller to our CLI
+	//while hopefullying keeping the same struct througout
 	controller := NewController(db, logger)
 
 	//this is a sick ideayes
