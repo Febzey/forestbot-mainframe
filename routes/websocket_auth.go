@@ -35,6 +35,12 @@ type WebsocketClient struct {
 	//The minecraft server the websocket is being used for.
 	Mc_server string
 
+	//Determine if this client is an active minecraft bot.
+	//Mc Clients are essential for this entire project,
+	//they will take first priority when needed.
+	//these are the actual bots that will be in minecraft servers collecting data
+	IsMcClient bool
+
 	//The websocket connection for the client.
 	Conn *websocket.Conn
 }
@@ -52,6 +58,9 @@ type MessageChannel struct {
 	Message types.WebsocketMessage
 }
 
+/*
+Some settings for our websocket behaviour
+*/
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
@@ -115,6 +124,9 @@ func (c *Controller) NewWebsocketClient(conn *websocket.Conn, api_key string, mc
 	//
 	client_permissions := utils.CheckApiKey(api_key)
 
+	//
+	//Let the console know a websocket client has connected.
+	//
 	c.Logger.WebsocketConnect((fmt.Sprintf("Websocket Client Connected For Minecraft Server: %s | ID: %s ", mc_server, client_id)))
 
 	//
