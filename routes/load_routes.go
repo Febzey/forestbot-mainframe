@@ -9,7 +9,6 @@ import (
 	"github.com/febzey/ForestBot-Mainframe/logger"
 	"github.com/febzey/ForestBot-Mainframe/types"
 	"github.com/gorilla/mux"
-	"github.com/gorilla/websocket"
 )
 
 var (
@@ -27,32 +26,6 @@ type Route struct {
 
 	//The handler function to use for the route.
 	HandlerFunc http.HandlerFunc
-}
-
-type WebsocketClient struct {
-
-	//The unqie ID for the websocket client connected.
-	ClientID string
-
-	//Here is going to be our Permissions. One api key will have all permissions.
-	//The other api key will only have read data permissions.
-	//Permssion types can be: read_data, write_data
-	Permissions types.APIPermissions
-
-	//The minecraft server the websocket is being used for.
-	Mc_server string
-
-	//The websocket connection for the client.
-	Conn *websocket.Conn
-}
-
-type MessageChannel struct {
-
-	//The websocket client ID for the message.
-	ClientID string
-
-	//The websocket message for the message.
-	Message types.WebsocketMessage
 }
 
 type Controller struct {
@@ -95,30 +68,12 @@ func NewController(db *database.Database, logger *logger.Logger) *Controller {
 	}
 }
 
-func LoadAndHandleRoutes(router *mux.Router, db *database.Database, logger *logger.Logger) {
+func LoadAndHandleRoutes(router *mux.Router, controller *Controller) {
 
-	//main controller that is passed to all of our routes.
-
-	//TODO: work on CLI, work on returning the controller from this function,
-	//then in the main function we can pass controller to our CLI
-	//while hopefullying keeping the same struct througout
-	controller := NewController(db, logger)
-
-	//this is a sick ideayes
-	//so this function will run always :D //always watching the MessageChan
-	//lets see if it works!
+	//Continous running function that processes all Websocket Messages.
 	go ProcessWebsocketMessage(controller)
 
 	var routes = []Route{
-
-		//Get Request to implement:
-		//Advancements -- Done
-		//Messages -- Done
-		//Random Quote -- Done
-		//Tablist -- Done
-		//Bulk deaths -- DONE
-		//Bulk kills -- done
-
 		//Gets all available servers forestbot has been on
 		//example url: http://localhost:5000/api/v1/all-server
 		{
@@ -187,7 +142,7 @@ func LoadAndHandleRoutes(router *mux.Router, db *database.Database, logger *logg
 		{
 			Method:      http.MethodGet,
 			Pattern:     apiUrl + "/websocket/connect",
-			HandlerFunc: controller.handleWebSocketAuth,
+			HandlerFunc: controller.websocketController,
 		},
 
 		//Quries: uuid, server, limit, order

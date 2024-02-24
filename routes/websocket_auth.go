@@ -18,14 +18,77 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
+/**
+A struct for our individual websocket clients.
+created when a client connects to our server.
+**/
+type WebsocketClient struct {
+
+	//The unqie ID for the websocket client connected.
+	ClientID string
+
+	//Here is going to be our Permissions. One api key will have all permissions.
+	//The other api key will only have read data permissions.
+	//Permssion types can be: read_data, write_data
+	Permissions types.APIPermissions
+
+	//The minecraft server the websocket is being used for.
+	Mc_server string
+
+	//The websocket connection for the client.
+	Conn *websocket.Conn
+}
+
+/**
+Main message Channel, all inbound client messages will defined
+by this struct.
+**/
+type MessageChannel struct {
+
+	//The websocket client ID for the message.
+	ClientID string
+
+	//The websocket message for the message.
+	Message types.WebsocketMessage
+}
+
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
-	CheckOrigin:     func(*http.Request) bool { return true }, //TODO: change this to only allow connections from our domain
+	CheckOrigin:     func(*http.Request) bool { return true },
 }
 
-func (c *Controller) InitializeWebsocketClient(conn *websocket.Conn, api_key string, mc_server string) *WebsocketClient {
+/**
 
+initializing our websocket client
+when the user connects, this function will
+generate their unique client_id, check permissions based on the given API key,
+then send the client_id back to the user for the user to store and send with each message.
+
+**/
+func (c *Controller) NewWebsocketClient(conn *websocket.Conn, api_key string, mc_server string) *WebsocketClient {
+
+	//
+	//Incoming connection is missing either server or x-api-key queries
+	//
+	if mc_server == "" || api_key == "" {
+		errorMessage := "Missing required headers: client-id, x-api-key - closing the connection"
+		c.SendMessageByStructure(conn, types.WebsocketMessage{
+			Client_id: "",
+			Action:    "error",
+			Data:      errorMessage,
+		})
+		conn.Close()
+		return nil
+	}
+
+	//TODO:
+	//check for if client is a minecraft bot, if there is already a client identified as an mc-bot and the mc_server is existing, then tell them there can only be 1,
+	//or to change their status from mc-bot to something else so they can still read messages for that specified server!
+
+	//
+	//Generating unique client id
+	//
 	client_id, err := utils.RandomUUID()
 	if err != nil {
 		fmt.Println(err.Error())
@@ -38,69 +101,105 @@ func (c *Controller) InitializeWebsocketClient(conn *websocket.Conn, api_key str
 		return nil
 	}
 
-	if mc_server == "" || api_key == "" {
-		errorMessage := "Missing required headers: client-id, x-api-key - closing the connection"
-		c.SendMessageByStructure(conn, types.WebsocketMessage{
-			Client_id: client_id,
-			Action:    "error",
-			Data:      errorMessage,
-		})
-		//close connection
-		conn.Close()
-		return nil
-	}
-
+	//
+	//Sending the recenetly generated client_id back to the client so they can store it to use in future messages
+	//
 	c.SendMessageByStructure(conn, types.WebsocketMessage{
 		Client_id: client_id,
 		Action:    "id",
 		Data:      client_id,
 	})
 
+	//
+	//Checking the clients permissions based of the given api key
+	//
 	client_permissions := utils.CheckApiKey(api_key)
 
-	return &WebsocketClient{
+	c.Logger.WebsocketConnect((fmt.Sprintf("Websocket Client Connected For Minecraft Server: %s | ID: %s ", mc_server, client_id)))
+
+	//
+	//Creating our custom websocket client instance.
+	//
+	client := &WebsocketClient{
 		ClientID:    client_id,
 		Conn:        conn,
 		Permissions: client_permissions,
 		Mc_server:   mc_server,
 	}
 
-}
-
-func (c *Controller) handleUserDisconnect(client_id string) {
+	//
+	//Adding the websocket client to our clients map inside of the Controller Struct
+	//
 	c.Mutex.Lock()
-	delete(c.Clients, client_id)
+	c.Clients[client_id] = client
 	c.Mutex.Unlock()
+
+	//
+	//Returning our newly creating client instance
+	//
+	return client
+
 }
 
-func (c *Controller) handleWebSocketAuth(w http.ResponseWriter, r *http.Request) {
+/*
+Function used for removing a websocket client from our Controller Client map.
+*/
+func (c *Controller) removeWebSocketClient(clientID string) {
+	c.Mutex.Lock()
+	defer c.Mutex.Unlock()
 
+	if client, ok := c.Clients[clientID]; ok {
+		if client.Conn != nil {
+			client.Conn.Close()
+		}
+
+		delete(c.Clients, clientID)
+
+		c.Logger.WebsocketDisconnect(fmt.Sprintf("Removed WebSocket client: %s", clientID))
+	}
+}
+
+/**
+This is our websocket controller function,
+this will go off anytime someone connects to the websocket,
+it is a http endpoint but is upgraded to websocket.
+**/
+func (c *Controller) websocketController(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 
+	//
+	//Upgrading http connection to websocket
+	//
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		c.Logger.Error(err.Error())
 		return
 	}
 
-	mc_server := r.URL.Query().Get("server")
-	api_key := r.URL.Query().Get("x-api-key")
+	//
+	//Getting our server and x-api-key url queries.
+	//
+	mc_server, api_key := r.URL.Query().Get("server"), r.URL.Query().Get("x-api-key")
 
-	client := c.InitializeWebsocketClient(conn, api_key, mc_server)
+	//
+	//Creating a websocket instance with or given queries.
+	//
+	client := c.NewWebsocketClient(conn, api_key, mc_server)
 
-	c.Logger.WebsocketConnect((fmt.Sprintf("Websocket Client Connected For Minecraft Server: %s | ID: %s ", mc_server, client.ClientID)))
-
-	c.Mutex.Lock()
-	c.Clients[client.ClientID] = client
-	c.Mutex.Unlock()
-
+	//
+	//Removing websocket connection when they exit.
+	//
 	defer func() {
-		c.Mutex.Lock()
-		delete(c.Clients, client.ClientID)
-		c.Mutex.Unlock()
+		c.removeWebSocketClient(client.ClientID)
 	}()
 
+	//
+	//Continous loop reading websocket messages.
+	//
 	for {
+		//
+		//Read raw incoming data.
+		//
 		_, p, err := conn.ReadMessage()
 		if err != nil {
 			if closeErr, ok := err.(*websocket.CloseError); ok {
@@ -109,35 +208,33 @@ func (c *Controller) handleWebSocketAuth(w http.ResponseWriter, r *http.Request)
 				c.Logger.Error(err.Error())
 			}
 
-			c.handleUserDisconnect(client.ClientID)
+			c.removeWebSocketClient(client.ClientID)
 			break
 		}
-		// if err != nil {
-		// 	c.Logger.Error(err.Error())
 
-		// 	return
-		// }
-
+		//
+		//Checking permissions for our client.
+		//
 		if !client.Permissions.Write {
-			c.Logger.Error("Client does not have permission to write data")
-			//send message to client
-			errorMessage := "Client does not have permission to write data"
 			c.SendMessageByStructure(conn, types.WebsocketMessage{
 				Client_id: client.ClientID,
 				Action:    "error",
-				Data:      errorMessage,
+				Data:      "Client does not have permission to write data",
 			})
-			//close connection
 			conn.Close()
 			return
 		}
 
+		//
+		//Attempting to decode the websocket message into our desired message structure.
+		//
 		var recievedMessage types.WebsocketMessage
-
 		if err := json.Unmarshal(p, &recievedMessage); err != nil {
 			c.Logger.Error(err.Error())
 
+			//
 			//send a message back to the client telling them their message structure was invalid
+			//
 			errorMessage := "Invalid message structure"
 			c.SendMessageByStructure(conn, types.WebsocketMessage{
 				Client_id: client.ClientID,
@@ -147,6 +244,10 @@ func (c *Controller) handleWebSocketAuth(w http.ResponseWriter, r *http.Request)
 			continue
 		}
 
+		//
+		//Send data to our websocket message channel
+		//for later proccessing
+		//
 		c.MessageChan <- MessageChannel{
 			ClientID: client.ClientID,
 			Message:  recievedMessage,
@@ -156,10 +257,9 @@ func (c *Controller) handleWebSocketAuth(w http.ResponseWriter, r *http.Request)
 }
 
 /*
-*
 Handling all inbound websocket messages.
 The client must send their client_id with each message.
-*
+This function is ran as a go routine and will be running continously and is called inside of the loud_route file.
 */
 func ProcessWebsocketMessage(c *Controller) {
 	for {
