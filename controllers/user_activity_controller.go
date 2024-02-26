@@ -5,7 +5,7 @@ playerActivity table in the database.
 
 ***/
 
-package routes
+package controllers
 
 import (
 	"encoding/json"

@@ -7,10 +7,10 @@ import (
 	"os"
 	"os/signal"
 
+	"github.com/febzey/ForestBot-Mainframe/controllers"
 	"github.com/febzey/ForestBot-Mainframe/database"
 	"github.com/febzey/ForestBot-Mainframe/logger"
 	"github.com/febzey/ForestBot-Mainframe/middleware"
-	"github.com/febzey/ForestBot-Mainframe/routes"
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
 )
@@ -47,6 +47,7 @@ func main() {
 		logger.Error(err.Error())
 		log.Fatal("Failed to connect to the database")
 	}
+
 	defer func() {
 		// Defer the closing of the database connection
 		if err := db.CloseDb(); err != nil {
@@ -63,10 +64,10 @@ func main() {
 	r.Use(middleware.LoggingMiddleware)
 
 	// Create a controller
-	controller := routes.NewController(db, logger)
+	controller := controllers.NewController(db, logger)
 
 	// Load and handle routes
-	routes.LoadAndHandleRoutes(r, controller)
+	controllers.LoadAndHandleRoutes(r, controller)
 
 	// Set up CORS middleware
 	r.Use(mux.CORSMethodMiddleware(r))

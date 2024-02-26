@@ -1,21 +1,22 @@
 package utils
 
 import (
+	"errors"
 	"os"
 
 	"github.com/febzey/ForestBot-Mainframe/types"
 )
 
-func CheckApiKey(api_key string) types.APIPermissions {
+func CheckApiKey(api_key string) (types.APIPermissions, error) {
 	apiKeyType := determineAPIKeyType(api_key)
 
 	switch apiKeyType {
 	case "read_write":
-		return types.APIPermissions{Read: true, Write: true}
+		return types.APIPermissions{Read: true, Write: true}, nil
 	case "read_only":
-		return types.APIPermissions{Read: true, Write: false}
+		return types.APIPermissions{Read: true, Write: false}, nil
 	default:
-		return types.APIPermissions{Read: false, Write: false}
+		return types.APIPermissions{Read: false, Write: false}, errors.New("invalid api key")
 	}
 
 }

@@ -1,4 +1,4 @@
-package routes
+package controllers
 
 import (
 	"image"
@@ -43,6 +43,10 @@ type Controller struct {
 	//key is their unique ID given when they connect.
 	Clients map[string]*WebsocketClient
 
+	//event handlers for websocket.
+	//string will be action type for the event.
+	Handlers map[string]Handler
+
 	//Player list for each server connected
 	//key would be the name of server
 	//Array is player
@@ -51,6 +55,7 @@ type Controller struct {
 	//Caching images for playerlist / tablist
 	ImageCache types.ImageCache
 
+	//a mutex to keep our Controller in sync.
 	Mutex sync.Mutex
 }
 
@@ -60,6 +65,7 @@ func NewController(db *database.Database, logger *logger.Logger) *Controller {
 		Logger:      logger,
 		MessageChan: make(chan MessageChannel),
 		Clients:     make(map[string]*WebsocketClient),
+		Handlers:    make(map[string]Handler),
 		PlayerLists: make(map[string][]types.Player),
 		ImageCache: types.ImageCache{
 			HeadImages: make(map[string]image.Image),
@@ -70,8 +76,10 @@ func NewController(db *database.Database, logger *logger.Logger) *Controller {
 
 func LoadAndHandleRoutes(router *mux.Router, controller *Controller) {
 
+	controller.setupWebsocketEventHandlers()
+
 	//Continous running function that processes all Websocket Messages.
-	go ProcessWebsocketMessage(controller)
+	go ProcessWebsocketEvent(controller)
 
 	var routes = []Route{
 		//Gets all available servers forestbot has been on

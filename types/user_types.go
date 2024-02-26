@@ -6,18 +6,6 @@ import (
 	"sync"
 )
 
-type WebsocketMessage struct {
-	Client_id string `json:"client_id"`
-
-	//Action for the message example:
-	//minecraft_chat_message, minecraft_player_join, minecraft_player_leave, minecraft_player_kill, minecraft_player_death, discord_message
-	Action string `json:"action"`
-
-	//The data for the message.
-	//The data can be many of our structs below.
-	Data interface{} `json:"data"`
-}
-
 type ImageCache struct {
 	//The map of player heads to their image in the tablist.
 	HeadImages map[string]image.Image
