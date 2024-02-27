@@ -10,10 +10,12 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-/**
+/*
+*
 A struct for our individual websocket clients.
 created when a client connects to our server.
-**/
+*
+*/
 type WebsocketClient struct {
 
 	//The unqie ID for the websocket client connected.
@@ -59,14 +61,16 @@ var upgrader = websocket.Upgrader{
 	CheckOrigin:     func(*http.Request) bool { return true },
 }
 
-/**
+/*
+*
 
 initializing our websocket client
 when the user connects, this function will
 generate their unique client_id, check permissions based on the given API key,
 then send the client_id back to the user for the user to store and send with each message.
 
-**/
+*
+*/
 func NewWebsocketClient(conn *websocket.Conn, api_key string, mc_server string, isBot string, c *Controller) *WebsocketClient {
 
 	//
@@ -80,6 +84,22 @@ func NewWebsocketClient(conn *websocket.Conn, api_key string, mc_server string, 
 		})
 		if err != nil {
 			c.Logger.WebsocketError("Error sending message to client after incorrect queries provided.")
+		}
+		conn.Close()
+		return nil
+	}
+
+	//
+	//Checking the clients permissions based of the given api key
+	//
+	client_permissions, err := utils.CheckApiKey(api_key)
+	if err != nil {
+		if err := conn.WriteJSON(WebsocketEvent{
+			Client_id: "",
+			Action:    "error",
+			Data:      "You provided an invalid api key",
+		}); err != nil {
+			c.Logger.WebsocketError("client sent invalid api key, but we failed to tell them that.")
 		}
 		conn.Close()
 		return nil
@@ -149,22 +169,6 @@ func NewWebsocketClient(conn *websocket.Conn, api_key string, mc_server string, 
 	}
 
 	//
-	//Checking the clients permissions based of the given api key
-	//
-	client_permissions, err := utils.CheckApiKey(api_key)
-	if err != nil {
-		if err := conn.WriteJSON(WebsocketEvent{
-			Client_id: "",
-			Action:    "error",
-			Data:      "You provided an invalid api key",
-		}); err != nil {
-			c.Logger.WebsocketError("client sent invalid api key, but we failed to tell them that.")
-		}
-		conn.Close()
-		return nil
-	}
-
-	//
 	//Creating our custom websocket client instance.
 	//
 	client := &WebsocketClient{
@@ -193,6 +197,7 @@ func NewWebsocketClient(conn *websocket.Conn, api_key string, mc_server string, 
 
 /*
 Go routine for reading messages per client
+for the server to even read their message content, they need to have a proper write api key.
 */
 func (ws *WebsocketClient) readMessages() {
 	defer func() {
@@ -214,6 +219,8 @@ func (ws *WebsocketClient) readMessages() {
 
 		//
 		//Checking permissions for our client.
+
+		//obviously this is not fucking working
 		//
 		if !ws.Permissions.Write {
 			ws.Controller.sendMessageByStructure(ws.ClientID, WebsocketEvent{
@@ -230,7 +237,7 @@ func (ws *WebsocketClient) readMessages() {
 		//
 		var recievedMessage WebsocketEvent
 		if err := json.Unmarshal(p, &recievedMessage); err != nil {
-			ws.Controller.Logger.Error(err.Error())
+			ws.Controller.Logger.WebsocketError(err.Error())
 
 			//
 			//send a message back to the client telling them their message structure was invalid
@@ -266,22 +273,16 @@ func (ws WebsocketClient) writeMessages() {
 		ws.Controller.removeWebSocketClient(ws.ClientID)
 	}()
 
-	for {
-		select {
-		case message, ok := <-ws.Egress:
-			if !ok {
-				if err := ws.Conn.WriteMessage(websocket.CloseMessage, nil); err != nil {
-					break
-				}
-				return
+	for message := range ws.Egress {
+		if message.Action == "" {
+			if err := ws.Conn.WriteMessage(websocket.CloseMessage, nil); err != nil {
+				break
 			}
+			return
+		}
 
-			if err := ws.Conn.WriteJSON(message); err != nil {
-				ws.Controller.Logger.WebsocketError(err.Error())
-			}
-
-			ws.Controller.Logger.WebsocketInfo("Message sent successfully.")
-
+		if err := ws.Conn.WriteJSON(message); err != nil {
+			ws.Controller.Logger.WebsocketError(err.Error())
 		}
 	}
 

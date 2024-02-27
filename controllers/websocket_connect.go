@@ -15,10 +15,12 @@ import (
 	"github.com/febzey/ForestBot-Mainframe/types"
 )
 
-/**
+/*
+*
 Main message Channel, all inbound client messages will defined
 by this struct.
-**/
+*
+*/
 type MessageChannel struct {
 
 	//The websocket client ID for the message.
@@ -46,11 +48,13 @@ func (c *Controller) removeWebSocketClient(clientID string) {
 	}
 }
 
-/**
+/*
+*
 This is our websocket controller function,
 this will go off anytime someone connects to the websocket,
 it is a http endpoint but is upgraded to websocket.
-**/
+*
+*/
 func (c *Controller) websocketController(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 
@@ -73,7 +77,7 @@ func (c *Controller) websocketController(w http.ResponseWriter, r *http.Request)
 	//
 	client := NewWebsocketClient(conn, api_key, mc_server, isBot, c)
 	if client == nil {
-		c.Logger.WebsocketError(fmt.Sprintf("Client failed to connect."))
+		c.Logger.WebsocketError("Client failed to connect.")
 		return
 	}
 
@@ -157,7 +161,7 @@ func (c *Controller) sendMessageByStructure(id string, message WebsocketEvent) e
 	//change to send to the clients egress. then the egress handler will handle the msg
 	client, ok := c.Clients[id]
 	if !ok {
-		return errors.New("No client found")
+		return errors.New("no client found")
 	}
 	client.Egress <- message
 	return nil

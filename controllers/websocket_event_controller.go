@@ -21,8 +21,8 @@ type WebsocketEvent struct {
 	Data interface{} `json:"data"`
 }
 
-//Individual Handler structure.
-//I think this struct is only used when we need to create the initial map.
+// Individual Handler structure.
+// I think this struct is only used when we need to create the initial map.
 type Handler struct {
 	action  string
 	handler func(*Controller, WebsocketEvent)
@@ -95,6 +95,7 @@ func ProcessWebsocketEvent(c *Controller) {
 				Action:    "error",
 				Data:      "It seems you sent a client_id that does not match the one assigned to you!",
 			})
+			continue
 		}
 
 		event, ok := c.Handlers[message.Action]
@@ -104,6 +105,7 @@ func ProcessWebsocketEvent(c *Controller) {
 				Action:    "error",
 				Data:      "Invalid event action type.",
 			})
+			continue
 		}
 
 		if event.handler != nil {
