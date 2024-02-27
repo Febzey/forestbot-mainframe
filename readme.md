@@ -9,10 +9,31 @@ Welcome to the ForestBot API documentation. ForestBot is a comprehensive system 
 ForestBot's WebSocket integration empowers developers to establish real-time communication channels between their applications and Minecraft servers. This feature is particularly useful for applications requiring dynamic updates such as live chats, player events, and more.
 
 For detailed information on how to integrate and utilize ForestBot's WebSocket functionality, please refer to the [WebSocket Integration Guide](/controllers/websocket.md).
+
+# Generating API Keys
+
+ForestBot provides two types of API keys, each serving different purposes:
+
+- **Read/Write Keys (For Bot Clients):**
+  - Intended for bot clients interacting with Minecraft servers.
+  - Enables both reading and writing operations.
+  - Contact an administrator of the project to obtain a Read/Write key.
+  - You'll need to provide your intentions for connecting to the server and a valid email for contact.
+  - Once generated, you own the key and are responsible for its secure management.
+
+- **Read-Only Keys (For Regular Clients):**
+  - Designed for regular clients interested in reading data from the server.
+  - Allows read-only operations.
+  - To acquire a Read-Only key, reach out to an administrator of the project.
+  - Clearly state your purpose for connecting and provide a valid email address for communication.
+  - Upon generation, the key becomes your responsibility, and ensuring its security is crucial.
+
+Please contact project administrators to request the appropriate API key based on your use case.
+
 ## Endpoints
 
 
-## GET Requests
+### GET Requests
 
 ### Get User by Name
 - **Endpoint:** `/api/v1/playername`
