@@ -69,6 +69,9 @@ func main() {
 	// Load and handle routes
 	controllers.LoadAndHandleRoutes(r, controller)
 
+	//api key service for handling api keys.
+	//keyService := utils.NewAPIKeyService()
+
 	// Set up CORS middleware
 	r.Use(mux.CORSMethodMiddleware(r))
 
