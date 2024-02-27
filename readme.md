@@ -30,7 +30,7 @@ ForestBot provides two types of API keys, each serving different purposes:
 
 Please contact project administrators to request the appropriate API key based on your use case.
 
-## Endpoints
+# HTTP Endpoints
 
 
 ### GET Requests
