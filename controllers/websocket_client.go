@@ -32,6 +32,13 @@ type WebsocketClient struct {
 	//since all messages are sent from one pipeline anywas
 	Mc_server string
 
+	//Perhaps add a list of servers a regular client would want to listen for?
+	//if the option is "all", we will loop through active connections, and add each mc_server to this list
+	//or the client can specifiy individual servers to listen for, we would then do a check to see if that server exists.
+	//Design choice: Option A: add this as a optional query parameter. Option B: add a event option the user can send later as a "command".
+	//we will implement this if the websocket server becomes overwhelemed with broadcasts. (which it will with our current setup.)
+	//ListeningServers []string
+
 	//Determine if this client is an active minecraft bot.
 	//Mc Clients are essential for this entire project,
 	//they will take first priority when needed.
@@ -75,6 +82,8 @@ func NewWebsocketClient(conn *websocket.Conn, api_key string, mc_server string, 
 
 	//
 	//Incoming connection is missing either server or x-api-key queries
+
+	//we will want to switch to check for the api_key in a map.
 	//
 	if api_key == "" {
 		err := conn.WriteJSON(WebsocketEvent{
@@ -189,7 +198,7 @@ func NewWebsocketClient(conn *websocket.Conn, api_key string, mc_server string, 
 	c.Mutex.Unlock()
 
 	//
-	//Returning our newly creating client instance
+	//Returning our newly creating client instance since all checks have passed!
 	//
 	return client
 
@@ -219,8 +228,8 @@ func (ws *WebsocketClient) readMessages() {
 
 		//
 		//Checking permissions for our client.
-
-		//obviously this is not fucking working
+		//Even though ther user is trying to write data with an invalid write key, we still keep the connection open,
+		//without forwarding their message event to the proccessor. (this is subject to change)
 		//
 		if !ws.Permissions.Write {
 			ws.Controller.sendMessageByStructure(ws.ClientID, WebsocketEvent{
@@ -228,8 +237,7 @@ func (ws *WebsocketClient) readMessages() {
 				Action:    "error",
 				Data:      "Client does not have permission to write data",
 			})
-			ws.Conn.Close()
-			return
+			continue
 		}
 
 		//
