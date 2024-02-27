@@ -1,10 +1,10 @@
 # API Documentation
 
-## Overview
+# Overview
 
 Welcome to the ForestBot API documentation. ForestBot is a comprehensive system that facilitates real-time data exchange and interaction with Minecraft servers. The API provides endpoints to retrieve information about players, their achievements, playtime, and enables WebSocket connections for dynamic, real-time updates.
 
-### WebSocket Integration
+# WebSocket Integration
 
 ForestBot's WebSocket integration empowers developers to establish real-time communication channels between their applications and Minecraft servers. This feature is particularly useful for applications requiring dynamic updates such as live chats, player events, and more.
 
