@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/febzey/ForestBot-Mainframe/types"
+	"github.com/febzey/ForestBot-Mainframe/keyservice"
 	"github.com/febzey/ForestBot-Mainframe/utils"
 	"github.com/gorilla/websocket"
 )
@@ -21,10 +21,17 @@ type WebsocketClient struct {
 	//The unqie ID for the websocket client connected.
 	ClientID string
 
+	// Here is the users api key, some contact info, created date, permissions.
+	// This struct will become populated once the user sends their api key
+	// using the "x-api-key" message event and the key is verified successfully.
+	// if the key does not exist, the client will not be able to read/write data.
+	Key keyservice.APIkey
+
+	//!!!!!!!! (Deprecated, switched permissions to Key struct) !!!!!!!!!!
 	//Here is going to be our Permissions. One api key will have all permissions.
 	//The other api key will only have read data permissions.
 	//Permssion types can be: read_data, write_data
-	Permissions types.APIPermissions
+	//Permissions types.APIPermissions
 
 	//The minecraft server the websocket is being used for.
 	//this will only be populated if the client connecting is a bot-client
@@ -76,44 +83,15 @@ when the user connects, this function will
 generate their unique client_id, check permissions based on the given API key,
 then send the client_id back to the user for the user to store and send with each message.
 
+!!!!!!!!!!!!!!!!!!!!!
+(WARNING) x-api-key will not longer be sent in the url when a client is connecting.
+instead the x-api-key will be sent as an event, once we recieve that event, we
+will do our checks and then save the x-api-key to our indiviudal WebsocketClient,
+by first checking if the x-api-key exists inside of our keyService in Controller
+!!!!!!!!!!!!!!!!!!!!!
 *
 */
-func NewWebsocketClient(conn *websocket.Conn, api_key string, mc_server string, isBot string, c *Controller) *WebsocketClient {
-
-	//
-	//Incoming connection is missing either server or x-api-key queries
-
-	//we will want to switch to check for the api_key in a map.
-	//
-	if api_key == "" {
-		err := conn.WriteJSON(WebsocketEvent{
-			Client_id: "",
-			Action:    "error",
-			Data:      "Missing required headers: x-api-key - closing the connection",
-		})
-		if err != nil {
-			c.Logger.WebsocketError("Error sending message to client after incorrect queries provided.")
-		}
-		conn.Close()
-		return nil
-	}
-
-	//
-	//Checking the clients permissions based of the given api key
-	//
-	client_permissions, err := utils.CheckApiKey(api_key)
-	if err != nil {
-		if err := conn.WriteJSON(WebsocketEvent{
-			Client_id: "",
-			Action:    "error",
-			Data:      "You provided an invalid api key",
-		}); err != nil {
-			c.Logger.WebsocketError("client sent invalid api key, but we failed to tell them that.")
-		}
-		conn.Close()
-		return nil
-	}
-
+func NewWebsocketClient(conn *websocket.Conn, mc_server string, isBot string, c *Controller) *WebsocketClient {
 	//
 	//Checking if the connecting client is a mc bot
 	//
@@ -181,13 +159,12 @@ func NewWebsocketClient(conn *websocket.Conn, api_key string, mc_server string, 
 	//Creating our custom websocket client instance.
 	//
 	client := &WebsocketClient{
-		ClientID:    client_id,
-		Conn:        conn,
-		Permissions: client_permissions,
-		Mc_server:   mc_server,
-		Egress:      make(chan WebsocketEvent),
-		Controller:  c,
-		IsMcClient:  isBot == "true",
+		ClientID:   client_id,
+		Conn:       conn,
+		Mc_server:  mc_server,
+		Egress:     make(chan WebsocketEvent),
+		Controller: c,
+		IsMcClient: isBot == "true",
 	}
 
 	//
@@ -207,6 +184,7 @@ func NewWebsocketClient(conn *websocket.Conn, api_key string, mc_server string, 
 /*
 Go routine for reading messages per client
 for the server to even read their message content, they need to have a proper write api key.
+Client -> Server
 */
 func (ws *WebsocketClient) readMessages() {
 	defer func() {
@@ -218,7 +196,6 @@ func (ws *WebsocketClient) readMessages() {
 		//Read raw incoming data.
 		//
 		_, p, err := ws.Conn.ReadMessage()
-
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				ws.Controller.Logger.WebsocketDisconnect(fmt.Sprintf("Websocket disconnected: Error: %s, client_id: %s \n", err, ws.ClientID))
@@ -227,40 +204,30 @@ func (ws *WebsocketClient) readMessages() {
 		}
 
 		//
-		//Checking permissions for our client.
-		//Even though ther user is trying to write data with an invalid write key, we still keep the connection open,
-		//without forwarding their message event to the proccessor. (this is subject to change)
-		//
-		if !ws.Permissions.Write {
-			ws.Controller.sendMessageByStructure(ws.ClientID, WebsocketEvent{
-				Client_id: ws.ClientID,
-				Action:    "error",
-				Data:      "Client does not have permission to write data",
-			})
-			continue
-		}
-
-		//
 		//Attempting to decode the websocket message into our desired message structure.
+		//Here is where we check if the message sent has the proper WebsocketEvent structure.
 		//
 		var recievedMessage WebsocketEvent
 		if err := json.Unmarshal(p, &recievedMessage); err != nil {
 			ws.Controller.Logger.WebsocketError(err.Error())
-
-			//
-			//send a message back to the client telling them their message structure was invalid
-			//
-			ws.Controller.sendMessageByStructure(ws.ClientID, WebsocketEvent{
-				Client_id: ws.ClientID,
-				Action:    "error",
-				Data:      "Invalid message structure",
-			})
+			ws.Controller.sendErrorMessage(ws.ClientID, "Invalid message structure")
 			continue
 		}
 
+		// For other actions, check if API key is registered.
+		if ws.Key.Key == "" && recievedMessage.Action != "x-api-key" {
+			ws.Controller.sendErrorMessage(ws.ClientID, "You need to register your API key with the 'x-api-key' event action")
+			break
+		}
+
+		// Check for write permissions.
+		if !ws.Key.Permissions.Write && recievedMessage.Action != "x-api-key" {
+			ws.Controller.sendErrorMessage(ws.ClientID, "No write permissions for your API key.")
+			break
+		}
 		//
 		//Send data to our websocket message channel
-		//for later proccessing
+		//for proccessing
 		//
 		ws.Controller.MessageChan <- MessageChannel{
 			ClientID: ws.ClientID,
@@ -275,13 +242,24 @@ Go routine for sending messages.
 we will constantly read our egress channel and send messages
 if content is picked up in our chanenl, each client will have their own egress.
 for now all of our messages will be sent as json
+Server -> Client
 */
 func (ws WebsocketClient) writeMessages() {
 	defer func() {
 		ws.Controller.removeWebSocketClient(ws.ClientID)
 	}()
 
+	// write a check to see if the clients Key exists, if it doesnt, then send no messages.
 	for message := range ws.Egress {
+
+		// If the key does not have the Read permission, then we continue
+		// all messages, so that the client will not recieve them.
+		// I think we also do this on the actual message construction layer, but does not hurt to check again.
+		// We continue here instead of a break in the case that the client just has not authenticated yet.
+		if !ws.Key.Permissions.Read {
+			continue
+		}
+
 		if message.Action == "" {
 			if err := ws.Conn.WriteMessage(websocket.CloseMessage, nil); err != nil {
 				break

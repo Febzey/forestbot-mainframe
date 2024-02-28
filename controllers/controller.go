@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/febzey/ForestBot-Mainframe/database"
+	"github.com/febzey/ForestBot-Mainframe/keyservice"
 	"github.com/febzey/ForestBot-Mainframe/logger"
 	"github.com/febzey/ForestBot-Mainframe/types"
 	"github.com/gorilla/mux"
@@ -55,11 +56,14 @@ type Controller struct {
 	//Caching images for playerlist / tablist
 	ImageCache types.ImageCache
 
+	//Key service for authentication
+	KeyService keyservice.APIKeyService
+
 	//a mutex to keep our Controller in sync.
 	Mutex sync.Mutex
 }
 
-func NewController(db *database.Database, logger *logger.Logger) *Controller {
+func NewController(db *database.Database, logger *logger.Logger, keyService *keyservice.APIKeyService) *Controller {
 	return &Controller{
 		Database:    db,
 		Logger:      logger,
@@ -70,7 +74,8 @@ func NewController(db *database.Database, logger *logger.Logger) *Controller {
 		ImageCache: types.ImageCache{
 			HeadImages: make(map[string]image.Image),
 		},
-		Mutex: sync.Mutex{},
+		KeyService: *keyService,
+		Mutex:      sync.Mutex{},
 	}
 }
 

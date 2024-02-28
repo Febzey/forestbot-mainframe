@@ -1,9 +1,10 @@
-package utils
+package keyservice
 
 import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"sync"
 	"time"
 
@@ -43,9 +44,15 @@ type APIkey struct {
 	//When the key was created.
 	CreatedAt int64
 
+	//millisecond timestamp of when this key was last used.
+	UpdatedAt int64
+
 	//The permissions the key has.
 	//Permissions are created when the key is made, and is a constant
 	Permissions APIPermissions
+
+	// number of messages this api key can write per hour
+	RateLimit int
 }
 
 // A structure for our api key service.
@@ -97,11 +104,11 @@ func (s *APIKeyService) NewApiKey(read, write bool, ownerEmail string) *APIkey {
 }
 
 //A function to encrypt an api key using sha256 encryption
-func (s *APIKeyService) EncryptAPIKey(key string) (string, error) {
+func (s *APIKeyService) EncryptAPIKey(plainTextKey string) (string, error) {
 	hasher := sha256.New()
-	_, err := hasher.Write([]byte(key))
+	_, err := hasher.Write([]byte(plainTextKey))
 	if err != nil {
-		return "", nil
+		return "", errors.New("Error encrypting plaintext.")
 	}
 
 	hashedBytes := hasher.Sum(nil)
@@ -111,7 +118,7 @@ func (s *APIKeyService) EncryptAPIKey(key string) (string, error) {
 
 }
 
-//A function to verify and get our api key
+// A function to verify and get our API key
 func (s *APIKeyService) GetAndVerifyAPIKey(plainTextKey string) (*APIkey, bool) {
 	s.Mu.Lock()
 	defer s.Mu.Unlock()
@@ -121,16 +128,17 @@ func (s *APIKeyService) GetAndVerifyAPIKey(plainTextKey string) (*APIkey, bool) 
 		return nil, false
 	}
 
-	return s.GetAPIKeyLocal(encryptedKey)
+	localKey, ok := s.GetAPIKeyLocal(encryptedKey)
+	if !ok {
+		return nil, false
+	}
 
+	return localKey, true
 }
 
 // Return an unmutable api key from our keymap
 // keys will be stored in the map encrypted.
 func (s *APIKeyService) GetAPIKeyLocal(encryptedKey string) (*APIkey, bool) {
-	s.Mu.Lock()
-	defer s.Mu.Unlock()
-
 	for _, apiKey := range s.KeyArr {
 		if apiKey.Key == encryptedKey {
 			copyAPIKey := apiKey

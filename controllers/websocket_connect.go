@@ -42,6 +42,7 @@ func (c *Controller) removeWebSocketClient(clientID string) {
 	if client, ok := c.Clients[clientID]; ok {
 		if client.Conn != nil {
 			client.Conn.Close()
+			c.Logger.WebsocketDisconnect(fmt.Sprintf("Client removed ID: %s", clientID))
 		}
 
 		delete(c.Clients, clientID)
@@ -70,12 +71,12 @@ func (c *Controller) websocketController(w http.ResponseWriter, r *http.Request)
 	//
 	//Getting our server and x-api-key url queries.
 	//
-	mc_server, api_key, isBot := r.URL.Query().Get("server"), r.URL.Query().Get("x-api-key"), r.URL.Query().Get("is-bot-client")
+	mc_server, isBot := r.URL.Query().Get("server"), r.URL.Query().Get("is-bot-client")
 
 	//
 	//Creating a websocket instance with or given queries.
 	//
-	client := NewWebsocketClient(conn, api_key, mc_server, isBot, c)
+	client := NewWebsocketClient(conn, mc_server, isBot, c)
 	if client == nil {
 		c.Logger.WebsocketError("Client failed to connect.")
 		return
@@ -145,7 +146,7 @@ func (c *Controller) BroadcastMessageToClients(message WebsocketEvent) {
 	defer c.Mutex.Unlock()
 
 	for _, client := range c.Clients {
-		if client.Permissions.Read {
+		if client.Key.Permissions.Read {
 			client.Egress <- message
 		}
 	}
@@ -167,10 +168,20 @@ func (c *Controller) sendMessageByStructure(id string, message WebsocketEvent) e
 	return nil
 }
 
+// Sending error messages, we bypass the clients egress channel and just send
+// the message straight to the connection.
 func (c *Controller) sendErrorMessage(id string, message string) {
-	c.sendMessageByStructure(id, WebsocketEvent{
+	defer c.Mutex.Unlock()
+	c.Mutex.Lock()
+	client, ok := c.Clients[id]
+	if !ok {
+		panic("Failed to send error message to client")
+	}
+
+	client.Conn.WriteJSON(WebsocketEvent{
 		Client_id: id,
 		Action:    "error",
 		Data:      message,
 	})
+
 }

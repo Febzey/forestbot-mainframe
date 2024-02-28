@@ -25,7 +25,7 @@ type WebsocketEvent struct {
 // I think this struct is only used when we need to create the initial map.
 type Handler struct {
 	action  string
-	handler func(*Controller, WebsocketEvent)
+	handler func(WebsocketEvent)
 }
 
 /*
@@ -35,31 +35,35 @@ func (c *Controller) setupWebsocketEventHandlers() {
 	events := []Handler{
 		{
 			action:  "inbound_discord_chat",
-			handler: handleInboundDiscordChat,
+			handler: c.handleInboundDiscordChat,
 		},
 		{
 			action:  "inbound_minecraft_chat",
-			handler: handleInboundMinecraftChat,
+			handler: c.handleInboundMinecraftChat,
 		},
 		{
 			action:  "minecraft_advancement",
-			handler: handleMinecraftAdvancement,
+			handler: c.handleMinecraftAdvancement,
 		},
 		{
 			action:  "minecraft_player_join",
-			handler: handleMinecraftPlayerJoin,
+			handler: c.handleMinecraftPlayerJoin,
 		},
 		{
 			action:  "minecraft_player_leave",
-			handler: handleMinecraftPlayerLeave,
+			handler: c.handleMinecraftPlayerLeave,
 		},
 		{
 			action:  "minecraft_player_death",
-			handler: handleMinecraftPlayerDeath,
+			handler: c.handleMinecraftPlayerDeath,
 		},
 		{
 			action:  "send_update_player_list",
-			handler: handleUpdatePlayerList,
+			handler: c.handleUpdatePlayerList,
+		},
+		{
+			action:  "x-api-key",
+			handler: c.handleApiKey,
 		},
 	}
 
@@ -75,41 +79,35 @@ This function is ran as a go routine and will be running continously and is call
 This function can be running even before any clients connect.
 */
 func ProcessWebsocketEvent(c *Controller) {
+
 	for {
 		messageChannel := <-c.MessageChan
 
 		message, realClientID := messageChannel.Message, messageChannel.ClientID
 
+		// The client_id the client sent is not found.
 		if _, ok := c.Clients[message.Client_id]; !ok {
-			c.sendMessageByStructure(realClientID, WebsocketEvent{
-				Client_id: realClientID,
-				Action:    "error",
-				Data:      "The client_id you gave is not valid. or unexpected error.",
-			})
+			c.sendErrorMessage(realClientID, "The client_id you gave is not valid. or unexpected error.")
 			continue
 		}
 
+		// The client send a client_id that already exists
+		// either a bug or possible that someone found a active clients id
 		if message.Client_id != realClientID {
-			c.sendMessageByStructure(realClientID, WebsocketEvent{
-				Client_id: realClientID,
-				Action:    "error",
-				Data:      "It seems you sent a client_id that does not match the one assigned to you!",
-			})
+			c.sendErrorMessage(realClientID, "It seems you sent a client_id that does not match the one assigned to you!")
 			continue
 		}
 
+		// Looing for the 'action' message event type sent by the user
 		event, ok := c.Handlers[message.Action]
 		if !ok {
-			c.sendMessageByStructure(realClientID, WebsocketEvent{
-				Client_id: realClientID,
-				Action:    "error",
-				Data:      "Invalid event action type.",
-			})
+			c.sendErrorMessage(realClientID, "Invalid event action type")
 			continue
 		}
 
 		if event.handler != nil {
-			event.handler(c, message)
+			event.handler(message)
+			continue
 		}
 	}
 }
@@ -123,10 +121,41 @@ func ProcessWebsocketEvent(c *Controller) {
 *
 **/
 
+func (c *Controller) handleApiKey(message WebsocketEvent) {
+	var apiKey string
+
+	if err := mapstructure.Decode(message.Data, &apiKey); err != nil {
+		c.sendErrorMessage(message.Client_id, "Invalid message structure for x-api-key")
+		return
+	}
+
+	c.Logger.WebsocketInfo("api key recieved:  ")
+
+	key, exists := c.KeyService.GetAndVerifyAPIKey(apiKey)
+
+	if !exists {
+		c.sendErrorMessage(message.Client_id, "Invalid api key recieved.")
+		return
+	}
+
+	c.Mutex.Lock()
+	c.Clients[message.Client_id].Key = *key
+	c.Mutex.Unlock()
+
+	c.sendMessageByStructure(message.Client_id, WebsocketEvent{
+		Client_id: message.Client_id,
+		Action:    "key-accepted",
+		Data:      "Authenticated successfully. Welcome to the ForestBot Control Server",
+	})
+
+	return
+
+}
+
 /**
 *Handling Inbound discord chat messages from our websocket
 **/
-func handleInboundDiscordChat(c *Controller, message WebsocketEvent) {
+func (c *Controller) handleInboundDiscordChat(message WebsocketEvent) {
 	var discordMessage types.DiscordMessage
 	if err := mapstructure.Decode(message.Data, &discordMessage); err != nil {
 		c.sendErrorMessage(message.Client_id, "Invalid message structure for inbound_discord_chat")
@@ -140,7 +169,7 @@ func handleInboundDiscordChat(c *Controller, message WebsocketEvent) {
 /*
 * Handling minecraft inbound chat messages from our websocket.
  */
-func handleInboundMinecraftChat(c *Controller, message WebsocketEvent) {
+func (c *Controller) handleInboundMinecraftChat(message WebsocketEvent) {
 	var minecraftChatMessage types.MinecraftChatMessage
 	if err := mapstructure.Decode(message.Data, &minecraftChatMessage); err != nil {
 		c.sendErrorMessage(message.Client_id, "Invalid message structure for inbound_minecraft_chat")
@@ -159,7 +188,7 @@ func handleInboundMinecraftChat(c *Controller, message WebsocketEvent) {
 /*
 * Handling inbound minecraft chat advancements from our websocket.
  */
-func handleMinecraftAdvancement(c *Controller, message WebsocketEvent) {
+func (c *Controller) handleMinecraftAdvancement(message WebsocketEvent) {
 	var minecraftAdvancementMessage types.MinecraftAdvancementMessage
 	if err := mapstructure.Decode(message.Data, &minecraftAdvancementMessage); err != nil {
 		c.sendErrorMessage(message.Client_id, "Invalid message structure for minecraft_advancement")
@@ -179,7 +208,7 @@ func handleMinecraftAdvancement(c *Controller, message WebsocketEvent) {
 /*
 * Handing minecraft player join messages from our websocket.
  */
-func handleMinecraftPlayerJoin(c *Controller, message WebsocketEvent) {
+func (c *Controller) handleMinecraftPlayerJoin(message WebsocketEvent) {
 	var minecraftPlayerJoinMessage types.MinecraftPlayerJoinMessage
 	if err := mapstructure.Decode(message.Data, &minecraftPlayerJoinMessage); err != nil {
 		c.sendErrorMessage(message.Client_id, "minecraft_player_join")
@@ -227,7 +256,7 @@ func handleMinecraftPlayerJoin(c *Controller, message WebsocketEvent) {
 /*
 * Handing minecraft player leave messages from our websocket
  */
-func handleMinecraftPlayerLeave(c *Controller, message WebsocketEvent) {
+func (c *Controller) handleMinecraftPlayerLeave(message WebsocketEvent) {
 	var minecraftPlayerLeaveMessage types.MinecraftPlayerLeaveMessage
 	if err := mapstructure.Decode(message.Data, &minecraftPlayerLeaveMessage); err != nil {
 		c.sendErrorMessage(message.Client_id, "minecraft_player_leave")
@@ -249,7 +278,7 @@ func handleMinecraftPlayerLeave(c *Controller, message WebsocketEvent) {
 /*
 * Handling minecraft player deaths and kills
  */
-func handleMinecraftPlayerDeath(c *Controller, message WebsocketEvent) {
+func (c *Controller) handleMinecraftPlayerDeath(message WebsocketEvent) {
 	var minecraftPlayerDeathMessage types.MinecraftPlayerDeathMessage
 	if err := mapstructure.Decode(message.Data, &minecraftPlayerDeathMessage); err != nil {
 		c.sendErrorMessage(message.Client_id, "minecraft_player_death")
@@ -269,7 +298,7 @@ func handleMinecraftPlayerDeath(c *Controller, message WebsocketEvent) {
 /*
 * Handling minecraft server lists, and users playtime update
  */
-func handleUpdatePlayerList(c *Controller, message WebsocketEvent) {
+func (c *Controller) handleUpdatePlayerList(message WebsocketEvent) {
 	dataMap, ok := message.Data.(map[string]interface{})
 	if !ok {
 		c.sendErrorMessage(message.Client_id, "send_update_player_list")

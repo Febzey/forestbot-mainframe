@@ -9,6 +9,7 @@ import (
 
 	"github.com/febzey/ForestBot-Mainframe/controllers"
 	"github.com/febzey/ForestBot-Mainframe/database"
+	"github.com/febzey/ForestBot-Mainframe/keyservice"
 	"github.com/febzey/ForestBot-Mainframe/logger"
 	"github.com/febzey/ForestBot-Mainframe/middleware"
 	"github.com/gorilla/mux"
@@ -63,14 +64,14 @@ func main() {
 	r := mux.NewRouter()
 	r.Use(middleware.LoggingMiddleware)
 
+	//api key service for handling api keys.
+	keyService := keyservice.NewAPIKeyService(db)
+
 	// Create a controller
-	controller := controllers.NewController(db, logger)
+	controller := controllers.NewController(db, logger, keyService)
 
 	// Load and handle routes
 	controllers.LoadAndHandleRoutes(r, controller)
-
-	//api key service for handling api keys.
-	//keyService := utils.NewAPIKeyService()
 
 	// Set up CORS middleware
 	r.Use(mux.CORSMethodMiddleware(r))

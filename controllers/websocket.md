@@ -4,9 +4,8 @@
 
 When a user connects to the ForestBot WebSocket, they can provide the following parameters as query parameters in the URL:
 
-- **server:** The Minecraft server identifier.
-- **x-api-key:** API key for authentication.
-- **is-bot-client:** Boolean indicating if the client is a bot client.
+- **server:** The Minecraft server identifier. (optional)
+- **is-bot-client:** Boolean indicating if the client is a bot client. (optional)
 
 ### Example URL
 
@@ -18,6 +17,39 @@ ws://forestbot-server.com/api/v1/websocket/connect?server=simplyvanilla&x-api-ke
 - If `is-bot-client` is set to true, the `server` parameter is mandatory.
 - Only one bot client (`is-bot-client="true"`) is allowed per Minecraft server to prevent redundancy in data gathering.
 - Bot clients, which act as Minecraft bots for data gathering, use read-write API keys.
+
+## Authenticating
+
+The server uses a key based authentication system. Keys are generated manually on request.
+
+#### Websocket Authentication:
+After recieving your `client_id` you will want to send your api key as the next message event with the action event name as `x-api-key` the data being a string (your key), if successful you should recieve the event: `key-accepted`
+
+Example:
+```go
+WebsocketEvent{
+		Client_id: "your id",
+		Action: "x-api-key",
+		Data: "your key",
+	}
+```
+
+#### HTTP Example:
+When using regular http endpoints that are protected. (ex: need api key) then you will need to send your api key inside the `x-api-key` header
+
+Example:
+```json
+{
+  "method": "GET",
+  "path": "/api/v1/your-endpoint",
+  "http_version": "HTTP/1.1",
+  "headers": {
+    "Host": "example.com",
+    "x-api-key": "your-api-key"
+  }
+}
+```
+
 
 ## API Keys
 
@@ -66,6 +98,7 @@ The `Action` field within the `WebsocketEvent` structure defines the type of mes
 - `error` (outbound)
 - `new_name` (outbound)
 - `new_user`(outbound)
+- `key-accepted` (outbound)
 
 Each action corresponds to specific data structures, enabling seamless integration and processing of diverse events.
 
