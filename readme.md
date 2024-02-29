@@ -42,12 +42,12 @@ More information at the git url
 
 ForestBot's WebSocket integration empowers developers to establish real-time communication channels between their applications and Minecraft servers. This feature is particularly useful for applications requiring dynamic updates such as live chats, player events, and more.
 
-For detailed information on how to integrate and utilize ForestBot's WebSocket functionality, please refer to the [WebSocket Integration Guide](/controllers/websocket.md).
+For detailed information on how to integrate and utilize ForestBot's WebSocket functionality, please refer to the [WebSocket Integration Guide](/controllers/readme.md).
 
 
 ## API keys and Authentication
 Read here for documenation on authentication and obtaining/using keys.
-[Authentication and Keys Guide](/keyservice/auth.md)
+[Authentication and Keys Guide](/keyservice/readme.md)
 
 ## HTTP Endpoints
 
