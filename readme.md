@@ -3,6 +3,40 @@
 ## Overview
 
 Welcome to the ForestBot API documentation. ForestBot is a comprehensive system that facilitates real-time data exchange and interaction with Minecraft servers. The API provides endpoints to retrieve information about players, their achievements, playtime, and enables WebSocket connections for dynamic, real-time updates.
+<br>
+
+## Bot Client
+
+The bot client is a crucial component of our system, enabling the collection of in-game data using Mineflayer, Typescript, and NodeJS. It plays a central role in gathering information, which is then sent to our server for storage.
+
+### Usage:
+
+1. **Installation:** The bot client is hosted in a separate repository and can be run independently of the main server. You can find the premade bot client at [ForestBot](https://github.com/ForestB0T/ForestBot).
+
+2. **Self-Hosting:** Users have the option to host the bot client on their own systems. This allows you to run the bot client while connecting to our servers to utilize the collected data.
+
+### Importance:
+
+- **Critical Functionality:** Bot clients are the backbone of our system. They actively collect data in the game, making the entire process possible.
+
+- **Independent Operation:** The bot client operates independently and can be hosted on your own machine, enhancing flexibility and ease of use.
+
+### Repository:
+
+- The source code for the premade bot client can be found on GitHub at [ForestBot](https://github.com/ForestB0T/ForestBot).
+
+Feel free to explore the repository for more details on setting up and running the bot client.
+
+## API Wrapper
+While the raw http endpoints and websocket connections are available, fortunately we have created a complete wrapper around the API and Websocket for simplified use and complete types.
+<br>
+However, the wrapper is made entirely with nodeJS and Typescript.
+<br>
+Git Repository: [ForestBot-Api-Wrapper-v2]("https://github.com/ForestB0T/forestbot-wrapper-v2")
+<br>
+Installing with yarn: `yarn add forestbot-api-wrapper-v2`
+<br>
+More information at the git url
 
 ## WebSocket Integration
 
