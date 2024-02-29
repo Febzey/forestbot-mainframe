@@ -18,46 +18,10 @@ ws://forestbot-server.com/api/v1/websocket/connect?server=simplyvanilla&x-api-ke
 - Only one bot client (`is-bot-client="true"`) is allowed per Minecraft server to prevent redundancy in data gathering.
 - Bot clients, which act as Minecraft bots for data gathering, use read-write API keys.
 
-## Authenticating
+## API keys and Authentication
+Read here for documenation on authentication and obtaining/using keys.
+[Authentication and Keys Guide](/keyservice/auth.md)
 
-The server uses a key based authentication system. Keys are generated manually on request.
-
-#### Websocket Authentication:
-After recieving your `client_id` you will want to send your api key as the next message event with the action event name as `x-api-key` the data being a string (your key), if successful you should recieve the event: `key-accepted`
-
-Example:
-```go
-WebsocketEvent{
-		Client_id: "your id",
-		Action: "x-api-key",
-		Data: "your key",
-	}
-```
-
-#### HTTP Example:
-When using regular http endpoints that are protected. (ex: need api key) then you will need to send your api key inside the `x-api-key` header
-
-Example:
-```json
-{
-  "method": "GET",
-  "path": "/api/v1/your-endpoint",
-  "http_version": "HTTP/1.1",
-  "headers": {
-    "Host": "example.com",
-    "x-api-key": "your-api-key"
-  }
-}
-```
-
-
-## API Keys
-
-- Two types of API keys are supported: read and read-write.
-- **Read Key:**
-  - Used by regular clients for accessing data without write privileges.
-- **Read-Write Key:**
-  - Mainly used by bot clients for writing data to the server.
 
 ## Self-Hosting Bot Client
 
