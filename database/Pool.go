@@ -12,7 +12,7 @@ import (
 //TODO: clean code. Add comments to each function and struct
 
 type Database struct {
-	pool *sql.DB
+	Pool *sql.DB
 }
 
 type databaseOptions struct {
@@ -47,7 +47,7 @@ func Connect() (*Database, error) {
 	}
 
 	instance := &Database{
-		pool: db,
+		Pool: db,
 	}
 
 	return instance, nil
@@ -55,9 +55,13 @@ func Connect() (*Database, error) {
 
 // create a function to easily query the database
 func (db *Database) Query(query string, args ...interface{}) (*sql.Rows, error) {
-	return db.pool.Query(query, args...)
+	return db.Pool.Query(query, args...)
+}
+
+func (db *Database) Execute(query string, args ...interface{}) (sql.Result, error) {
+	return db.Pool.Exec(query, args)
 }
 
 func (db *Database) CloseDb() error {
-	return db.pool.Close()
+	return db.Pool.Close()
 }

@@ -3,12 +3,11 @@ package keyservice
 import (
 	"crypto/rand"
 	"crypto/sha256"
+	"database/sql"
 	"encoding/hex"
 	"errors"
-	"sync"
+	"fmt"
 	"time"
-
-	"github.com/febzey/ForestBot-Mainframe/database"
 )
 
 /******
@@ -53,6 +52,9 @@ type APIkey struct {
 
 	// number of messages this api key can write per hour
 	RateLimit int
+
+	//bot-client, client, etc.
+	TokenType string
 }
 
 // A structure for our api key service.
@@ -60,47 +62,44 @@ type APIkey struct {
 // if a part of our client needs to save, read, check an api key, we
 // should do it through this service.
 type APIKeyService struct {
-	//this map contains each api key currently available.
-	KeyArr []APIkey
-
-	//a mutext to keep our map in sync.
-	Mu *sync.Mutex
-
 	// a struct to our database
-	Db *database.Database
+	Db *sql.DB
 }
 
 // a new service for our api keys and perhaps some more security features in the future?
-func NewAPIKeyService(db *database.Database) *APIKeyService {
+func NewAPIKeyService(db *sql.DB) *APIKeyService {
 	return &APIKeyService{
-		KeyArr: make([]APIkey, 0),
-		Mu:     &sync.Mutex{},
-		Db:     db,
+		Db: db,
 	}
-
 }
 
 // Func to generate our api keys
-// when the key is generated, it will be automatically saved to the keymap
-func (s *APIKeyService) NewApiKey(read, write bool, ownerEmail string) *APIkey {
+// when the key is generated, it will be automatically saved to the database
+func (s *APIKeyService) NewApiKey(read, write bool, ownerEmail string, rateLimit int, TokenType string) (string, error) {
 
 	key := generateRandomKey()
+	keyEncryped, _ := s.EncryptAPIKey(key)
 	createdAt := time.Now().UnixNano() / int64(time.Millisecond)
 
-	s.Mu.Lock()
-	defer s.Mu.Unlock()
-
-	apikey := &APIkey{
-		Key:         key,
+	apikey := APIkey{
+		Key:         keyEncryped,
 		OwnerEmail:  ownerEmail,
 		CreatedAt:   createdAt,
+		UpdatedAt:   createdAt,
 		Permissions: APIPermissions{Read: read, Write: write},
+		RateLimit:   rateLimit,
+		TokenType:   TokenType,
 	}
 
-	s.KeyArr = append(s.KeyArr, *apikey)
+	err := s.saveKeyToDatabase(apikey)
+	if err != nil {
+		return "", err
+	}
 
-	return apikey
-
+	//Here we will return the APIKey struct we just created, the key inside is encryped,
+	//but since this is the first time we generated this key, we also need to return the plainText key
+	//so the user can save it, after this we will never deal with plainText again, only when the user sends it for later use.
+	return key, nil
 }
 
 //A function to encrypt an api key using sha256 encryption
@@ -119,40 +118,87 @@ func (s *APIKeyService) EncryptAPIKey(plainTextKey string) (string, error) {
 }
 
 // A function to verify and get our API key
-func (s *APIKeyService) GetAndVerifyAPIKey(plainTextKey string) (*APIkey, bool) {
-	s.Mu.Lock()
-	defer s.Mu.Unlock()
-
+func (s *APIKeyService) GetAndVerifyAPIKey(plainTextKey string) (APIkey, bool) {
 	encryptedKey, err := s.EncryptAPIKey(plainTextKey)
 	if err != nil {
-		return nil, false
+		return APIkey{}, false
 	}
 
-	localKey, ok := s.GetAPIKeyLocal(encryptedKey)
-	if !ok {
-		return nil, false
+	key, err := s.retrieveKeyFromDatabase(encryptedKey)
+	if err != nil {
+		return APIkey{}, false
 	}
 
-	return localKey, true
-}
-
-// Return an unmutable api key from our keymap
-// keys will be stored in the map encrypted.
-func (s *APIKeyService) GetAPIKeyLocal(encryptedKey string) (*APIkey, bool) {
-	for _, apiKey := range s.KeyArr {
-		if apiKey.Key == encryptedKey {
-			copyAPIKey := apiKey
-			return &copyAPIKey, true
-		}
-	}
-
-	return nil, false
+	return key, true
 }
 
 // A function that will be called in the NewKeyService func.
 // will load api keys stored in our database, to our local map.
-func (s *APIKeyService) retrieveKeysFromDatabaseAndLoadLocalMap() {
+func (s *APIKeyService) retrieveKeyFromDatabase(encryptedKey string) (APIkey, error) {
 
+	query := `
+        SELECT Api_key, OwnerEmail, CreatedAt, UpdatedAt, ReadPermission, WritePermission, RateLimit, TokenType
+        FROM api_keys
+        WHERE Api_key = ?;
+    `
+
+	var apiKey APIkey
+	err := s.Db.QueryRow(query, encryptedKey).Scan(
+		&apiKey.Key,
+		&apiKey.OwnerEmail,
+		&apiKey.CreatedAt,
+		&apiKey.UpdatedAt,
+		&apiKey.Permissions.Read,
+		&apiKey.Permissions.Write,
+		&apiKey.RateLimit,
+		&apiKey.TokenType,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return APIkey{}, fmt.Errorf("key not found.")
+		}
+
+		return APIkey{}, fmt.Errorf("error getting key: %w", err)
+	}
+
+	//lets also add a query where we update the updatedAt row.
+
+	return apiKey, nil
+}
+
+func (s *APIKeyService) saveKeyToDatabase(key APIkey) error {
+	currentTime := time.Now()
+	nanoseconds := currentTime.UnixNano()
+	milliseconds := nanoseconds / int64(time.Millisecond)
+
+	tableQuery := `
+	CREATE TABLE IF NOT EXISTS api_keys (
+		Api_key VARCHAR(255) NOT NULL,
+		OwnerEmail VARCHAR(255) NOT NULL,
+		CreatedAt BIGINT NOT NULL,
+		UpdatedAt BIGINT NOT NULL,
+		ReadPermission TINYINT NOT NULL,
+		WritePermission TINYINT NOT NULL,
+		RateLimit INT NOT NULL,
+		TokenType VARCHAR(255) NOT NULL,
+		PRIMARY KEY (Api_key)
+	  );
+	`
+
+	insertQuery := `
+	INSERT INTO api_keys (Api_key, OwnerEmail, CreatedAt, UpdatedAt, ReadPermission, WritePermission, RateLimit, TokenType)
+	VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+	`
+
+	if _, err := s.Db.Exec(tableQuery); err != nil {
+		return fmt.Errorf("error checking/creating table: %w", err)
+	}
+
+	if _, err := s.Db.Exec(insertQuery, key.Key, key.OwnerEmail, milliseconds, milliseconds, key.Permissions.Read, key.Permissions.Write, key.RateLimit, key.TokenType); err != nil {
+		return fmt.Errorf("error inserting API key: %w", err)
+	}
+
+	return nil
 }
 
 // Generate the api key.

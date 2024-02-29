@@ -129,8 +129,6 @@ func (c *Controller) handleApiKey(message WebsocketEvent) {
 		return
 	}
 
-	c.Logger.WebsocketInfo("api key recieved:  ")
-
 	key, exists := c.KeyService.GetAndVerifyAPIKey(apiKey)
 
 	if !exists {
@@ -139,7 +137,7 @@ func (c *Controller) handleApiKey(message WebsocketEvent) {
 	}
 
 	c.Mutex.Lock()
-	c.Clients[message.Client_id].Key = *key
+	c.Clients[message.Client_id].Key = key
 	c.Mutex.Unlock()
 
 	c.sendMessageByStructure(message.Client_id, WebsocketEvent{

@@ -24,7 +24,7 @@ func (d *Database) SavePlayerJoin(message types.MinecraftPlayerJoinMessage) (*Re
 	}
 
 	//Getting the user to see if they already exist in the database:
-	rows, err := d.pool.Query("SELECT * FROM users WHERE uuid = ? AND mc_server = ?", uuid, server)
+	rows, err := d.Query("SELECT * FROM users WHERE uuid = ? AND mc_server = ?", uuid, server)
 	if err != nil {
 		return no_action, err
 	}
@@ -33,7 +33,7 @@ func (d *Database) SavePlayerJoin(message types.MinecraftPlayerJoinMessage) (*Re
 	//check if the user does not exist
 	if !rows.Next() {
 		//if the user does not exist, create them
-		_, err := d.pool.Exec("INSERT INTO users(username, joindate, uuid, joins, mc_server, lastseen) VALUES (?,?,?,?,?,?)", user, timestamp, uuid, 1, server, timestamp)
+		_, err := d.Execute("INSERT INTO users(username, joindate, uuid, joins, mc_server, lastseen) VALUES (?,?,?,?,?,?)", user, timestamp, uuid, 1, server, timestamp)
 		if err != nil {
 			return no_action, err
 		}
@@ -67,7 +67,7 @@ func (d *Database) SavePlayerJoin(message types.MinecraftPlayerJoinMessage) (*Re
 		}
 
 		//if the user does exist, update their join count
-		_, err = d.pool.Exec("UPDATE users SET joins = joins + 1, lastseen = ? WHERE uuid = ? AND mc_server = ?", timestamp, uuid, server)
+		_, err = d.Execute("UPDATE users SET joins = joins + 1, lastseen = ? WHERE uuid = ? AND mc_server = ?", timestamp, uuid, server)
 		if err != nil {
 			return no_action, err
 		}
@@ -81,14 +81,14 @@ func (d *Database) SavePlayerJoin(message types.MinecraftPlayerJoinMessage) (*Re
 		}
 
 		insertLoginActivity := "INSERT INTO playerActivity(uuid, username, date, type, mc_server) VALUES (?,?,?,?,?)"
-		_, err = d.pool.Exec(insertLoginActivity, loginEventData.UUID, loginEventData.Username, loginEventData.Date, loginEventData.Type, loginEventData.Mc_server)
+		_, err = d.Execute(insertLoginActivity, loginEventData.UUID, loginEventData.Username, loginEventData.Date, loginEventData.Type, loginEventData.Mc_server)
 		if err != nil {
 			return no_action, err
 		}
 
 		//if the username is different from the one in the database, update it
 		if user != userFromDatabase.Username {
-			_, err := d.pool.Exec("UPDATE users SET username = ? WHERE username = ? AND uuid = ? AND mc_server = ?", user, userFromDatabase.Username, uuid, server)
+			_, err := d.Execute("UPDATE users SET username = ? WHERE username = ? AND uuid = ? AND mc_server = ?", user, userFromDatabase.Username, uuid, server)
 			if err != nil {
 				return no_action, err
 			}

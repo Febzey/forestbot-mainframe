@@ -21,7 +21,7 @@ func (d *Database) SaveDiscordLiveChat(args types.LivechatChannel) error {
 	mc_server = VALUES(mc_server);
 	`
 
-	_, err := d.pool.Exec(
+	_, err := d.Execute(
 		query,
 		cleanGuildName,
 		args.GuildID,

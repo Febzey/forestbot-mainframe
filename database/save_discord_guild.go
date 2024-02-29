@@ -17,7 +17,7 @@ func (d *Database) SaveDiscordGuild(guild types.Guild) error {
 	ON DUPLICATE KEY UPDATE channel_id = ?, mc_server = ?, setup_by = ?, created_at = ?
 	`
 
-	_, err := d.pool.Exec(
+	_, err := d.Execute(
 		query,
 		guild.Guild_id,
 		guild.Channel_id,

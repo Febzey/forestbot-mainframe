@@ -65,7 +65,7 @@ func main() {
 	r.Use(middleware.LoggingMiddleware)
 
 	//api key service for handling api keys.
-	keyService := keyservice.NewAPIKeyService(db)
+	keyService := keyservice.NewAPIKeyService(db.Pool)
 
 	// Create a controller
 	controller := controllers.NewController(db, logger, keyService)

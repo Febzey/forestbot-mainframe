@@ -329,6 +329,20 @@ func LoadAndHandleRoutes(router *mux.Router, controller *Controller) {
 			Pattern:     apiUrl + "/discord/deletelivechat",
 			HandlerFunc: controller.DeleteDiscordLiveChat,
 		},
+
+		/*
+			Generating api key for a new client,
+			Body: {
+				"contactEmail": "someEmail@gmail.com",
+				"Permissions": { "write": false, "read": true },
+			}
+			url: http://localhost:5000/api/v1/key/generate
+		*/
+		{
+			Method:      http.MethodPost,
+			Pattern:     apiUrl + "/key/generate",
+			HandlerFunc: controller.PostNewApiKey,
+		},
 	}
 
 	for _, route := range routes {
