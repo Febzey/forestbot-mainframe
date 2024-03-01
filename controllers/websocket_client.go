@@ -25,13 +25,7 @@ type WebsocketClient struct {
 	// This struct will become populated once the user sends their api key
 	// using the "x-api-key" message event and the key is verified successfully.
 	// if the key does not exist, the client will not be able to read/write data.
-	Key keyservice.APIkey
-
-	//!!!!!!!! (Deprecated, switched permissions to Key struct) !!!!!!!!!!
-	//Here is going to be our Permissions. One api key will have all permissions.
-	//The other api key will only have read data permissions.
-	//Permssion types can be: read_data, write_data
-	//Permissions types.APIPermissions
+	Key *keyservice.APIkey
 
 	//The minecraft server the websocket is being used for.
 	//this will only be populated if the client connecting is a bot-client
@@ -164,6 +158,7 @@ func NewWebsocketClient(conn *websocket.Conn, mc_server string, isBot string, c 
 		Mc_server:  mc_server,
 		Egress:     make(chan WebsocketEvent),
 		Controller: c,
+		Key:        &keyservice.APIkey{},
 		IsMcClient: isBot == "true",
 	}
 
@@ -244,7 +239,7 @@ if content is picked up in our chanenl, each client will have their own egress.
 for now all of our messages will be sent as json
 Server -> Client
 */
-func (ws WebsocketClient) writeMessages() {
+func (ws *WebsocketClient) writeMessages() {
 	defer func() {
 		ws.Controller.removeWebSocketClient(ws.ClientID)
 	}()
@@ -252,11 +247,7 @@ func (ws WebsocketClient) writeMessages() {
 	// write a check to see if the clients Key exists, if it doesnt, then send no messages.
 	for message := range ws.Egress {
 
-		// If the key does not have the Read permission, then we continue
-		// all messages, so that the client will not recieve them.
-		// I think we also do this on the actual message construction layer, but does not hurt to check again.
-		// We continue here instead of a break in the case that the client just has not authenticated yet.
-		if !ws.Key.Permissions.Read {
+		if ws.Key.Key == "" {
 			continue
 		}
 

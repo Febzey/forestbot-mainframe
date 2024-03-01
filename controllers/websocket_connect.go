@@ -157,13 +157,11 @@ This function allows us to send a message to specific
 websocket connection, while following our websocket message structure.
 */
 func (c *Controller) sendMessageByStructure(id string, message WebsocketEvent) error {
-	c.Mutex.Lock()
-	defer c.Mutex.Unlock()
-	//change to send to the clients egress. then the egress handler will handle the msg
 	client, ok := c.Clients[id]
 	if !ok {
 		return errors.New("no client found")
 	}
+
 	client.Egress <- message
 	return nil
 }
@@ -171,8 +169,6 @@ func (c *Controller) sendMessageByStructure(id string, message WebsocketEvent) e
 // Sending error messages, we bypass the clients egress channel and just send
 // the message straight to the connection.
 func (c *Controller) sendErrorMessage(id string, message string) {
-	defer c.Mutex.Unlock()
-	c.Mutex.Lock()
 	client, ok := c.Clients[id]
 	if !ok {
 		panic("Failed to send error message to client")

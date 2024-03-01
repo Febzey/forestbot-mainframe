@@ -57,10 +57,10 @@ type Controller struct {
 	ImageCache types.ImageCache
 
 	//Key service for authentication
-	KeyService keyservice.APIKeyService
+	KeyService *keyservice.APIKeyService
 
 	//a mutex to keep our Controller in sync.
-	Mutex sync.Mutex
+	Mutex *sync.Mutex
 }
 
 func NewController(db *database.Database, logger *logger.Logger, keyService *keyservice.APIKeyService) *Controller {
@@ -74,8 +74,8 @@ func NewController(db *database.Database, logger *logger.Logger, keyService *key
 		ImageCache: types.ImageCache{
 			HeadImages: make(map[string]image.Image),
 		},
-		KeyService: *keyService,
-		Mutex:      sync.Mutex{},
+		KeyService: keyService,
+		Mutex:      &sync.Mutex{},
 	}
 }
 

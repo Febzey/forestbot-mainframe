@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 )
 
@@ -62,6 +63,12 @@ type APIkey struct {
 // if a part of our client needs to save, read, check an api key, we
 // should do it through this service.
 type APIKeyService struct {
+	//Cache for used keys
+	keyArr map[string]APIkey
+
+	//mutex to keep us in sync
+	mu *sync.Mutex
+
 	// a struct to our database
 	Db *sql.DB
 }
@@ -69,12 +76,15 @@ type APIKeyService struct {
 // a new service for our api keys and perhaps some more security features in the future?
 func NewAPIKeyService(db *sql.DB) *APIKeyService {
 	return &APIKeyService{
-		Db: db,
+		keyArr: make(map[string]APIkey),
+		mu:     &sync.Mutex{},
+		Db:     db,
 	}
 }
 
 // Func to generate our api keys
 // when the key is generated, it will be automatically saved to the database
+// we return the api key in plaintext to give to the client. after that its always encrypted.
 func (s *APIKeyService) NewApiKey(read, write bool, ownerEmail string, rateLimit int, TokenType string) (string, error) {
 
 	key := generateRandomKey()
@@ -96,9 +106,6 @@ func (s *APIKeyService) NewApiKey(read, write bool, ownerEmail string, rateLimit
 		return "", err
 	}
 
-	//Here we will return the APIKey struct we just created, the key inside is encryped,
-	//but since this is the first time we generated this key, we also need to return the plainText key
-	//so the user can save it, after this we will never deal with plainText again, only when the user sends it for later use.
 	return key, nil
 }
 
@@ -118,22 +125,36 @@ func (s *APIKeyService) EncryptAPIKey(plainTextKey string) (string, error) {
 }
 
 // A function to verify and get our API key
+// Will check our local key map if not present will search the database.
 func (s *APIKeyService) GetAndVerifyAPIKey(plainTextKey string) (APIkey, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	encryptedKey, err := s.EncryptAPIKey(plainTextKey)
 	if err != nil {
 		return APIkey{}, false
 	}
 
-	key, err := s.retrieveKeyFromDatabase(encryptedKey)
-	if err != nil {
-		return APIkey{}, false
+	var key APIkey
+
+	cachedKey, ok := s.keyArr[encryptedKey]
+	if !ok {
+		key, err := s.retrieveKeyFromDatabase(encryptedKey)
+		if err != nil {
+			return APIkey{}, false
+		}
+
+		s.keyArr[key.Key] = key
+
+		return key, true
 	}
+
+	key = cachedKey
 
 	return key, true
 }
 
-// A function that will be called in the NewKeyService func.
-// will load api keys stored in our database, to our local map.
+// A function to get a key from the database using the encrypted key.
 func (s *APIKeyService) retrieveKeyFromDatabase(encryptedKey string) (APIkey, error) {
 
 	query := `
@@ -142,14 +163,24 @@ func (s *APIKeyService) retrieveKeyFromDatabase(encryptedKey string) (APIkey, er
         WHERE Api_key = ?;
     `
 
-	var apiKey APIkey
+	var apiKey struct {
+		Api_key         string `json:"Api_key"`
+		OwnerEmail      string `json:"OwnerEmail"`
+		CreatedAt       int64  `json:"CreatedAt"`
+		UpdatedAt       int64  `json:"UpdatedAt"`
+		ReadPermission  int    `json:"ReadPermission"`
+		WritePermission int    `json:"WritePermission"`
+		RateLimit       int    `json:"RateLimit"`
+		TokenType       string `json:"TokenType"`
+	}
+
 	err := s.Db.QueryRow(query, encryptedKey).Scan(
-		&apiKey.Key,
+		&apiKey.Api_key,
 		&apiKey.OwnerEmail,
 		&apiKey.CreatedAt,
 		&apiKey.UpdatedAt,
-		&apiKey.Permissions.Read,
-		&apiKey.Permissions.Write,
+		&apiKey.ReadPermission,
+		&apiKey.WritePermission,
 		&apiKey.RateLimit,
 		&apiKey.TokenType,
 	)
@@ -161,11 +192,33 @@ func (s *APIKeyService) retrieveKeyFromDatabase(encryptedKey string) (APIkey, er
 		return APIkey{}, fmt.Errorf("error getting key: %w", err)
 	}
 
-	//lets also add a query where we update the updatedAt row.
+	var read bool = false
+	var write bool = false
 
-	return apiKey, nil
+	if apiKey.ReadPermission == 1 {
+		read = true
+	}
+	if apiKey.WritePermission == 1 {
+		write = true
+	}
+
+	builtApiKey := APIkey{
+		Key:        apiKey.Api_key,
+		OwnerEmail: apiKey.OwnerEmail,
+		CreatedAt:  apiKey.CreatedAt,
+		UpdatedAt:  apiKey.UpdatedAt,
+		Permissions: APIPermissions{
+			Read:  read,
+			Write: write,
+		},
+		RateLimit: apiKey.RateLimit,
+		TokenType: apiKey.TokenType,
+	}
+
+	return builtApiKey, nil
 }
 
+// A function to save a newly created key to the database
 func (s *APIKeyService) saveKeyToDatabase(key APIkey) error {
 	currentTime := time.Now()
 	nanoseconds := currentTime.UnixNano()

@@ -122,6 +122,14 @@ func ProcessWebsocketEvent(c *Controller) {
 **/
 
 func (c *Controller) handleApiKey(message WebsocketEvent) {
+	c.Mutex.Lock()
+	defer c.Mutex.Unlock()
+
+	if c.Clients[message.Client_id].Key.Key != "" {
+		c.sendErrorMessage(message.Client_id, "You are already authenticated.")
+		return
+	}
+
 	var apiKey string
 
 	if err := mapstructure.Decode(message.Data, &apiKey); err != nil {
@@ -130,21 +138,27 @@ func (c *Controller) handleApiKey(message WebsocketEvent) {
 	}
 
 	key, exists := c.KeyService.GetAndVerifyAPIKey(apiKey)
-
 	if !exists {
 		c.sendErrorMessage(message.Client_id, "Invalid api key recieved.")
 		return
 	}
 
-	c.Mutex.Lock()
-	c.Clients[message.Client_id].Key = key
-	c.Mutex.Unlock()
+	client, ok := c.Clients[message.Client_id]
+	if !ok {
+		c.sendErrorMessage(message.Client_id, "Could not find your client - Internal Server Error")
+		return
+	}
 
-	c.sendMessageByStructure(message.Client_id, WebsocketEvent{
+	client.Key = &key
+
+	err := c.sendMessageByStructure(message.Client_id, WebsocketEvent{
 		Client_id: message.Client_id,
 		Action:    "key-accepted",
 		Data:      "Authenticated successfully. Welcome to the ForestBot Control Server",
 	})
+	if err != nil {
+		fmt.Println(err.Error())
+	}
 
 	return
 
