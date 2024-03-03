@@ -218,12 +218,18 @@ func (s *APIKeyService) retrieveKeyFromDatabase(encryptedKey string) (APIkey, er
 	return builtApiKey, nil
 }
 
+// Feature Idea:
+// Add which mc server the key will be used for.
+// Allow a client to do all servers by seperating with commands in database.
+// If a client wants Write permissions, then only allow 1 server, not all.
+
 // A function to save a newly created key to the database
 func (s *APIKeyService) saveKeyToDatabase(key APIkey) error {
 	currentTime := time.Now()
 	nanoseconds := currentTime.UnixNano()
 	milliseconds := nanoseconds / int64(time.Millisecond)
 
+	//TODO: move this to when we actually create the key service
 	tableQuery := `
 	CREATE TABLE IF NOT EXISTS api_keys (
 		Api_key VARCHAR(255) NOT NULL,
@@ -261,4 +267,9 @@ func generateRandomKey() string {
 		panic(err)
 	}
 	return hex.EncodeToString(bytes)
+}
+
+func (s *APIKeyService) setupKeyTable() error {
+
+	return nil
 }

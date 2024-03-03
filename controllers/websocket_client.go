@@ -74,8 +74,7 @@ var upgrader = websocket.Upgrader{
 
 initializing our websocket client
 when the user connects, this function will
-generate their unique client_id, check permissions based on the given API key,
-then send the client_id back to the user for the user to store and send with each message.
+generate their unique client_id then send the client_id back to the user for the user to store and send with each message.
 
 !!!!!!!!!!!!!!!!!!!!!
 (WARNING) x-api-key will not longer be sent in the url when a client is connecting.
@@ -215,14 +214,14 @@ func (ws *WebsocketClient) readMessages() {
 			break
 		}
 
-		// Check for write permissions.
+		// Check for write permissions, if the action is not a client submitting their api key
 		if !ws.Key.Permissions.Write && recievedMessage.Action != "x-api-key" {
 			ws.Controller.sendErrorMessage(ws.ClientID, "No write permissions for your API key.")
 			break
 		}
 		//
 		//Send data to our websocket message channel
-		//for proccessing
+		//for proccessing in the ProccessWebsocketEvent go routine
 		//
 		ws.Controller.MessageChan <- MessageChannel{
 			ClientID: ws.ClientID,
@@ -235,8 +234,8 @@ func (ws *WebsocketClient) readMessages() {
 /*
 Go routine for sending messages.
 we will constantly read our egress channel and send messages
-if content is picked up in our chanenl, each client will have their own egress.
-for now all of our messages will be sent as json
+each client will have their own egress.
+for now all of our messages will be sent as json since our event structure uses json
 Server -> Client
 */
 func (ws *WebsocketClient) writeMessages() {
@@ -244,9 +243,11 @@ func (ws *WebsocketClient) writeMessages() {
 		ws.Controller.removeWebSocketClient(ws.ClientID)
 	}()
 
-	// write a check to see if the clients Key exists, if it doesnt, then send no messages.
 	for message := range ws.Egress {
 
+		// Ignoring clients who have not submitted their key, to avoid them seeing data without authenticating
+		// sort of seems our authentication all leads up to this one if statement lol.
+		// THE GREAT WALL OF CHINA - (if ur not authenticated lel)
 		if ws.Key.Key == "" {
 			continue
 		}

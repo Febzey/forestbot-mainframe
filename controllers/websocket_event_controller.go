@@ -77,6 +77,9 @@ Handling all inbound websocket messages.
 The client must send their client_id with each message.
 This function is ran as a go routine and will be running continously and is called inside of the controller file.
 This function can be running even before any clients connect.
+We use this function unlike the egress as a centralized way to handle events,
+if I remember correctly we do this so our program broadcasts (mostly) all messages from a centralized location.
+!!!!! This implementation is subject to change if we learn a better and more efficient method !!!!!
 */
 func ProcessWebsocketEvent(c *Controller) {
 
