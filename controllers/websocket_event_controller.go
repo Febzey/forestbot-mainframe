@@ -194,6 +194,7 @@ func (c *Controller) handleInboundMinecraftChat(message WebsocketEvent) {
 	c.Logger.WebsocketInfo("Minecraft chat message received from client: " + fmt.Sprintf("%v", minecraftChatMessage))
 	err := c.Database.SaveMinecraftChatMessage(minecraftChatMessage)
 	if err != nil {
+		fmt.Println(err)
 		c.sendErrorMessage(message.Client_id, "Error saving minecraft chat message to database")
 	}
 
@@ -233,6 +234,7 @@ func (c *Controller) handleMinecraftPlayerJoin(message WebsocketEvent) {
 	c.Logger.WebsocketInfo("Minecraft player join message received from client: " + fmt.Sprintf("%v", minecraftPlayerJoinMessage))
 
 	data, err := c.Database.SavePlayerJoin(minecraftPlayerJoinMessage)
+	fmt.Println(err.Error())
 	if err != nil {
 		c.sendErrorMessage(message.Client_id, "Error saving minecraft player join message to database")
 		return

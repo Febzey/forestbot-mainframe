@@ -16,6 +16,9 @@ type NewApiKeyRequest struct {
 		Read  bool `json:"read"`
 	} `json:"Permissions"`
 	RateLimit string `json:"rateLimit"`
+
+	// bot-client
+	// client
 	TokenType string `json:"tokentype"`
 }
 

@@ -1,9 +1,21 @@
 package database
 
-import "github.com/febzey/ForestBot-Mainframe/types"
+import (
+	"fmt"
+
+	"github.com/febzey/ForestBot-Mainframe/types"
+)
 
 func (d *Database) SaveMinecraftChatMessage(message types.MinecraftChatMessage) error {
-	_, err := d.Execute("INSERT INTO messages (name, message, date, mc_server, uuid) VALUES (?, ?, ?, ?, ?)", message.Name, message.Message, message.Date, message.Mc_server, message.Uuid)
+
+	// make sure everyhting is here
+	fmt.Println(message.Name)
+	fmt.Println(message.Message)
+	fmt.Println(message.Date.String)
+	fmt.Println(message.Mc_server)
+	fmt.Println(message.Uuid)
+
+	_, err := d.Execute("INSERT INTO messages (name, message, date, mc_server, uuid) VALUES (?, ?, ?, ?, ?)", message.Name, message.Message, message.Date.String, message.Mc_server, message.Uuid)
 	if err != nil {
 		return err
 	}

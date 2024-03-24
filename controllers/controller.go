@@ -335,6 +335,7 @@ func LoadAndHandleRoutes(router *mux.Router, controller *Controller) {
 			Body: {
 				"contactEmail": "someEmail@gmail.com",
 				"Permissions": { "write": false, "read": true },
+				"rateLimit": 100,
 			}
 			url: http://localhost:5000/api/v1/key/generate
 		*/

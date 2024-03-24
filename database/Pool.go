@@ -59,7 +59,7 @@ func (db *Database) Query(query string, args ...interface{}) (*sql.Rows, error) 
 }
 
 func (db *Database) Execute(query string, args ...interface{}) (sql.Result, error) {
-	return db.Pool.Exec(query, args)
+	return db.Pool.Exec(query, args...)
 }
 
 func (db *Database) CloseDb() error {
