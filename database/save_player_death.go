@@ -32,8 +32,23 @@ func (d *Database) InsertPlayerDeathOrKill(args types.MinecraftPlayerDeathMessag
 		return err
 	}
 
-	//If there is a murderer present.
-	if murderer.Valid && murderer.String != "" {
+	fmt.Println("made it here 1")
+
+	fmt.Println(murderer, " murderer stuff")
+
+	if murderer == nil {
+		fmt.Println(" got here for a pve death")
+
+		//No murderer was found so save to deaths table as PVE death
+		_, err := d.Execute("INSERT into deaths (victim, death_message, time, type, mc_server, victimUUID) VALUES (?, ?, ?, ?, ?, ?)",
+			victim, death_message, time, "pve", server, victim_uuid)
+		if err != nil {
+			return err
+		}
+
+		fmt.Println("somethning here not getting here... ")
+	} else {
+		fmt.Println("uhh y we here")
 
 		//Updating the murderers kill count.
 		if _, err := d.Execute("UPDATE users SET kills = kills + 1 WHERE username = ? AND mc_server = ?", murderer.String, server); err != nil {
@@ -41,21 +56,14 @@ func (d *Database) InsertPlayerDeathOrKill(args types.MinecraftPlayerDeathMessag
 		}
 
 		//Inserting the death into deaths table. with murderer and victim as type PVP
-		if _, err := d.Execute("INSERT into deaths (victim, death_message, murderer, time, type, mc_server, victimUUID, murdererUUID) VALUES (?,?,?,?,?,?,?,?)",
-			victim, death_message, murderer.String, time, "pvp", server, victim_uuid, murderer_uuid.String); err != nil {
+		_, err := d.Execute("INSERT into deaths (victim, death_message, murderer, time, type, mc_server, victimUUID, murdererUUID) VALUES (?,?,?,?,?,?,?,?)",
+			victim, death_message, murderer.String, time, "pvp", server, victim_uuid, murderer_uuid.String)
+		if err != nil {
 			return err
 		}
-
-		//No murderer
-	} else {
-
-		//No murderer was found so save to deaths table as PVE death
-		if _, err := d.Execute("INSERT into deaths (victim, death_message, time, type, mc_server, victimUUID) VALUES (?, ?, ?, ?, ?, ?)",
-			victim, death_message, time, "pve", server, victim_uuid); err != nil {
-			return err
-		}
-
 	}
+
+	fmt.Println("made it here in deaths..")
 
 	return nil
 }

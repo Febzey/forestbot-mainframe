@@ -13,13 +13,10 @@ type Result struct {
 }
 
 func (d *Database) SavePlayerJoin(message types.MinecraftPlayerJoinMessage) (Result, error) {
-
 	user := message.Username
 	server := message.Server
 	uuid := message.Uuid
 	timestamp := message.Timestamp
-
-	fmt.Println(user, " joined the server ", server, " at ", timestamp)
 
 	no_action := Result{
 		Action: "none",
@@ -34,18 +31,12 @@ func (d *Database) SavePlayerJoin(message types.MinecraftPlayerJoinMessage) (Res
 	}
 	defer rows.Close()
 
-	fmt.Println(" got here 1")
-
 	//check if the user does not exist
 	if !rows.Next() {
-		//if the user does not exist, create them
-		fmt.Println(" got here 2")
 		_, err := d.Execute("INSERT INTO users(username, joindate, uuid, joins, mc_server, lastseen) VALUES (?,?,?,?,?,?)", user, timestamp, uuid, 1, server, timestamp)
 		if err != nil {
 			return no_action, err
 		}
-
-		fmt.Println(" got here 3")
 
 		return Result{
 			Action: "new_user",
@@ -54,9 +45,6 @@ func (d *Database) SavePlayerJoin(message types.MinecraftPlayerJoinMessage) (Res
 			},
 		}, nil
 	} else {
-
-		fmt.Println(" got here 4")
-
 		var userFromDatabase types.User
 		err := rows.Scan(
 			&userFromDatabase.Username,
@@ -82,8 +70,6 @@ func (d *Database) SavePlayerJoin(message types.MinecraftPlayerJoinMessage) (Res
 			return no_action, err
 		}
 
-		fmt.Println(" got here 5")
-
 		loginEventData := types.PlayerActivity{
 			UUID:      uuid,
 			Username:  user,
@@ -92,15 +78,11 @@ func (d *Database) SavePlayerJoin(message types.MinecraftPlayerJoinMessage) (Res
 			Mc_server: server,
 		}
 
-		fmt.Println(" got here 6")
-
 		insertLoginActivity := "INSERT INTO playerActivity(uuid, username, date, type, mc_server) VALUES (?,?,?,?,?)"
 		_, err = d.Execute(insertLoginActivity, loginEventData.UUID, loginEventData.Username, loginEventData.Date, loginEventData.Type, loginEventData.Mc_server)
 		if err != nil {
 			return no_action, err
 		}
-
-		fmt.Println(" got here 7")
 
 		//if the username is different from the one in the database, update it
 		if user != userFromDatabase.Username {
@@ -118,11 +100,6 @@ func (d *Database) SavePlayerJoin(message types.MinecraftPlayerJoinMessage) (Res
 			}, nil
 
 		}
-
-		// we got here but some error idk
-		//work on why error happenins afer this!
-		// ! todo work on this error
-		fmt.Println(" got here 8")
 	}
 
 	return no_action, nil

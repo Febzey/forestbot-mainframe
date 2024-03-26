@@ -234,8 +234,8 @@ func (c *Controller) handleMinecraftPlayerJoin(message WebsocketEvent) {
 	c.Logger.WebsocketInfo("Minecraft player join message received from client: " + fmt.Sprintf("%v", minecraftPlayerJoinMessage))
 
 	data, err := c.Database.SavePlayerJoin(minecraftPlayerJoinMessage)
-	fmt.Println(err.Error())
 	if err != nil {
+		fmt.Println(err.Error())
 		c.sendErrorMessage(message.Client_id, "Error saving minecraft player join message to database")
 		return
 	}
@@ -305,6 +305,7 @@ func (c *Controller) handleMinecraftPlayerDeath(message WebsocketEvent) {
 	c.Logger.WebsocketInfo("Minecraft player death message received from client: " + fmt.Sprintf("%v", minecraftPlayerDeathMessage))
 
 	if err := c.Database.InsertPlayerDeathOrKill(minecraftPlayerDeathMessage); err != nil {
+		fmt.Println(err, " error saving death and or kills")
 		c.sendErrorMessage(message.Client_id, "Error saving minecraft player death message to database")
 		return
 	}
