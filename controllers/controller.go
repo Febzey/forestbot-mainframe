@@ -67,6 +67,8 @@ type Controller struct {
 	Mutex *sync.Mutex
 }
 
+// ! TODO Add a private key protection for our protected routes, return aunthorization error if not authorized.
+
 func NewController(db *database.Database, logger *logger.Logger, keyService *keyservice.APIKeyService) *Controller {
 	return &Controller{
 		Database:    db,
