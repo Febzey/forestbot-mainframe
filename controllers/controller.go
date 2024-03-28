@@ -17,6 +17,7 @@ var (
 	head_url = "https://mc-heads.net/avatar/"
 )
 
+// A route is a struct that represents a route in our API.
 type Route struct {
 
 	//The HTTP method to use for the route.
@@ -31,6 +32,7 @@ type Route struct {
 	isProtected bool
 }
 
+// Main controller that basically wraps our entire program, all api routes.
 type Controller struct {
 	//Our main database instance with helper functions.
 	Database *database.Database
@@ -82,7 +84,6 @@ func NewController(db *database.Database, logger *logger.Logger, keyService *key
 }
 
 func LoadAndHandleRoutes(router *mux.Router, controller *Controller) {
-
 	controller.setupWebsocketEventHandlers()
 
 	//Continous running function that processes all Websocket Messages.

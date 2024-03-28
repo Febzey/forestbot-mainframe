@@ -16,10 +16,8 @@ import (
 )
 
 /*
-*
 Main message Channel, all inbound client messages will defined
 by this struct.
-*
 */
 type MessageChannel struct {
 

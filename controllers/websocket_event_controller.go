@@ -165,9 +165,9 @@ func (c *Controller) handleApiKey(message WebsocketEvent) {
 
 }
 
-/**
-*Handling Inbound discord chat messages from our websocket
-**/
+/*
+* Handling Inbound discord chat messages from our websocket
+ */
 func (c *Controller) handleInboundDiscordChat(message WebsocketEvent) {
 	var discordMessage types.DiscordMessage
 	if err := mapstructure.Decode(message.Data, &discordMessage); err != nil {

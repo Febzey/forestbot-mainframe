@@ -4,12 +4,12 @@
 
 When a user connects to the ForestBot WebSocket, they can provide the following parameters as query parameters in the URL:
 
-- **server:** The Minecraft server identifier. (optional)
+- **server:** The Minecraft server identifier. (optional - use if you are a bot client)
 - **is-bot-client:** Boolean indicating if the client is a bot client. (optional)
 
 ### Example URL
 
-ws://forestbot-server.com/api/v1/websocket/connect?server=simplyvanilla&is-bot-client=true
+ws://forestbot.me/api/v1/websocket/connect?server=simplyvanilla&is-bot-client=true
 
 
 ## Bot Client Considerations
@@ -63,9 +63,12 @@ The `Action` field within the `WebsocketEvent` structure defines the type of mes
 - `new_name` (outbound)
 - `new_user`(outbound)
 - `key-accepted` (outbound)
+- `x-api-key` (inbound)
 
 Each action corresponds to specific data structures, enabling seamless integration and processing of diverse events.
-
+`inbound` - meaning this message can only be sent to the server client -> server.
+`outbound` - meaning this is a message that is sent from server to client only. server -> client
+`directional` meaning this message can be sent both ways. client -> server or server -> client
 
 ## Example Use Cases
 
@@ -82,3 +85,4 @@ Each action corresponds to specific data structures, enabling seamless integrati
 - Write key required
 - Register a bot client for your minecraft server
 - Self host ForestBot and start saving data on your server
+- Registering a bot-client without following proper procedure will result in being blacklisted.
