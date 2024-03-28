@@ -9,7 +9,7 @@ When a user connects to the ForestBot WebSocket, they can provide the following 
 
 ### Example URL
 
-ws://forestbot-server.com/api/v1/websocket/connect?server=simplyvanilla&x-api-key=your-api-key&is-bot-client=true
+ws://forestbot-server.com/api/v1/websocket/connect?server=simplyvanilla&is-bot-client=true
 
 
 ## Bot Client Considerations
@@ -20,7 +20,7 @@ ws://forestbot-server.com/api/v1/websocket/connect?server=simplyvanilla&x-api-ke
 
 ## API keys and Authentication
 Read here for documenation on authentication and obtaining/using keys.
-[Authentication and Keys Guide](/keyservice/auth.md)
+[Authentication and Keys Guide](/keyservice/readme.md)
 
 
 ## Self-Hosting Bot Client

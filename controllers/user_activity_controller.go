@@ -9,6 +9,7 @@ package controllers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/febzey/ForestBot-Mainframe/utils"
@@ -38,7 +39,7 @@ func (c *Controller) GetHourlyPlayerActivityStats(w http.ResponseWriter, r *http
 		return
 	}
 
-	responseJSON, err := json.Marshal(map[string]interface{}{"player_activity_by_hour": playerActivityByHour})
+	responseJSON, err := json.Marshal(playerActivityByHour)
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		c.Logger.Error(err.Error())
@@ -141,5 +142,53 @@ func (c *Controller) GetPlayerActivityData(w http.ResponseWriter, r *http.Reques
 	}
 
 	utils.RespondWithJSON(w, http.StatusOK, playerActivityData)
+
+}
+
+// GetServerStats is a function that returns the weekly server stats for a specific server.
+func (c *Controller) GetServerStats(w http.ResponseWriter, r *http.Request) {
+	mc_server := r.URL.Query().Get("server")
+
+	serverStats, err := c.Database.SELECT_server_stats(mc_server)
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		c.Logger.Error(err.Error())
+		return
+	}
+
+	responseJSON, err := json.Marshal(serverStats)
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		c.Logger.Error(err.Error())
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(responseJSON)
+
+}
+
+// getting top 5 leaderboards for various things from the past 7 days exactly.
+func (c *Controller) GetTop5Leaderboard(w http.ResponseWriter, r *http.Request) {
+	mc_server := r.URL.Query().Get("server")
+
+	top5Leaderboards, err := c.Database.SELECT_top_5_player_stats(mc_server)
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		c.Logger.Error(err.Error())
+		return
+	}
+
+	fmt.Println(top5Leaderboards)
+
+	responseJSON, err := json.Marshal(top5Leaderboards)
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		c.Logger.Error(err.Error())
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(responseJSON)
 
 }

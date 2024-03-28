@@ -163,8 +163,6 @@ func (c *Controller) handleApiKey(message WebsocketEvent) {
 		fmt.Println(err.Error())
 	}
 
-	return
-
 }
 
 /**

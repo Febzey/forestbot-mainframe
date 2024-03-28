@@ -27,6 +27,8 @@ type Route struct {
 
 	//The handler function to use for the route.
 	HandlerFunc http.HandlerFunc
+
+	isProtected bool
 }
 
 type Controller struct {
@@ -93,6 +95,22 @@ func LoadAndHandleRoutes(router *mux.Router, controller *Controller) {
 			Method:      http.MethodGet,
 			Pattern:     apiUrl + "/all-servers",
 			HandlerFunc: controller.GetAvailableServers,
+		},
+
+		// getting weekly server stats for a specific server
+		// exactly 7 days ago
+		{
+			Method:      http.MethodGet,
+			Pattern:     apiUrl + "/server-stats",
+			HandlerFunc: controller.GetServerStats,
+		},
+
+		// getting top 5 leaderboards for various things for specific server,
+		// exactly 7 days ago
+		{
+			Method:      http.MethodGet,
+			Pattern:     apiUrl + "/server-leaderboard",
+			HandlerFunc: controller.GetTop5Leaderboard,
 		},
 
 		//queries: server username or uuid
@@ -273,6 +291,7 @@ func LoadAndHandleRoutes(router *mux.Router, controller *Controller) {
 			Method:      http.MethodGet,
 			Pattern:     apiUrl + "/discord/guilds",
 			HandlerFunc: controller.GetDiscordGuilds,
+			isProtected: true,
 		},
 
 		//get all live chat channels for our discord bot
@@ -280,6 +299,7 @@ func LoadAndHandleRoutes(router *mux.Router, controller *Controller) {
 			Method:      http.MethodGet,
 			Pattern:     apiUrl + "/discord/livechats",
 			HandlerFunc: controller.GetDiscordLiveChatChannels,
+			isProtected: true,
 		},
 
 		//////POST REQUESTS//////
@@ -291,6 +311,7 @@ func LoadAndHandleRoutes(router *mux.Router, controller *Controller) {
 			Method:      http.MethodPost,
 			Pattern:     apiUrl + "/discord/addguild",
 			HandlerFunc: controller.PostDiscordGuild,
+			isProtected: true,
 		},
 		//body: {"guildName": "simplyvanilla_discord_server", "guildID": "123", "channelID": "123", "setupBy": "123", "date": "123", "mcServer": "simplyvanilla"}
 		//description: adds a live chat channel to the database
@@ -299,6 +320,7 @@ func LoadAndHandleRoutes(router *mux.Router, controller *Controller) {
 			Method:      http.MethodPost,
 			Pattern:     apiUrl + "/discord/addlivechat",
 			HandlerFunc: controller.PostDiscordLiveChat,
+			isProtected: true,
 		},
 
 		//body: {"username": "febzey", "description": "I am a cool guy"}
@@ -319,6 +341,7 @@ func LoadAndHandleRoutes(router *mux.Router, controller *Controller) {
 			Method:      http.MethodDelete,
 			Pattern:     apiUrl + "/discord/deleteguild",
 			HandlerFunc: controller.DeleteDiscordGuild,
+			isProtected: true,
 		},
 
 		//queries: channel_id
@@ -328,6 +351,7 @@ func LoadAndHandleRoutes(router *mux.Router, controller *Controller) {
 			Method:      http.MethodDelete,
 			Pattern:     apiUrl + "/discord/deletelivechat",
 			HandlerFunc: controller.DeleteDiscordLiveChat,
+			isProtected: true,
 		},
 
 		/*
@@ -343,6 +367,7 @@ func LoadAndHandleRoutes(router *mux.Router, controller *Controller) {
 			Method:      http.MethodPost,
 			Pattern:     apiUrl + "/key/generate",
 			HandlerFunc: controller.PostNewApiKey,
+			isProtected: true,
 		},
 	}
 

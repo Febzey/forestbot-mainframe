@@ -49,10 +49,6 @@ func (c *Controller) PostNewApiKey(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 
-	//TODO:: instead of sending key back to client as just a string,
-	// lets structure the response like { key: string }
 	utils.RespondWithJSON(w, http.StatusOK, plainTextKey)
-
-	return
 
 }

@@ -75,13 +75,7 @@ var upgrader = websocket.Upgrader{
 initializing our websocket client
 when the user connects, this function will
 generate their unique client_id then send the client_id back to the user for the user to store and send with each message.
-
-!!!!!!!!!!!!!!!!!!!!!
-(WARNING) x-api-key will not longer be sent in the url when a client is connecting.
-instead the x-api-key will be sent as an event, once we recieve that event, we
-will do our checks and then save the x-api-key to our indiviudal WebsocketClient,
-by first checking if the x-api-key exists inside of our keyService in Controller
-!!!!!!!!!!!!!!!!!!!!!
+api key is sent in a seperate event message, after the client_id is sent back to the user.
 *
 */
 func NewWebsocketClient(conn *websocket.Conn, mc_server string, isBot string, c *Controller) *WebsocketClient {
