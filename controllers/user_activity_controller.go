@@ -9,7 +9,6 @@ package controllers
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/febzey/ForestBot-Mainframe/utils"
@@ -178,8 +177,6 @@ func (c *Controller) GetTop5Leaderboard(w http.ResponseWriter, r *http.Request) 
 		c.Logger.Error(err.Error())
 		return
 	}
-
-	fmt.Println(top5Leaderboards)
 
 	responseJSON, err := json.Marshal(top5Leaderboards)
 	if err != nil {
