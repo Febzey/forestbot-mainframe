@@ -44,6 +44,8 @@ var (
 	) AS new_players;
 	`
 
+	//! TODO lets remove this query. since we already send over the top 5 players with most logins for the past 7 days
+	//! remove once updated in frontend
 	SELECT_USER_WITH_MOST_LOGINS = `
 	SELECT username, COUNT(*) AS login_count
 	FROM playerActivity
