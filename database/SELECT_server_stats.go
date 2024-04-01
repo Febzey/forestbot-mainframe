@@ -9,6 +9,10 @@ type ServerStatsProps struct {
 		Username   string
 		LoginCount int
 	}
+
+	TotalUsersSaved   int
+	TotalAdvancements int
+	TotalDeaths       int
 }
 
 var (
@@ -49,10 +53,28 @@ var (
 	GROUP BY username
 	ORDER BY login_count DESC
 	LIMIT 1;
-	
+	`
+
+	SELECT_TOTAL_USERS_SAVED = `
+	SELECT COUNT(*) AS user_count
+	FROM users
+	WHERE mc_server = ?;
+	`
+
+	SELECT_TOTAL_ADVANCEMENTS = `
+	SELECT COUNT(*) AS advancement_count
+	FROM advancements
+	WHERE mc_server = ?;
+	`
+
+	SELECT_TOTAL_DEATHS = `
+	SELECT COUNT(*) AS death_count
+	FROM deaths
+	WHERE mc_server = ?;
 	`
 )
 
+// some weekly and overall stats for the server
 func (d *Database) SELECT_server_stats(server string) (stats ServerStatsProps, err error) {
 
 	var totalLogins int
@@ -78,11 +100,29 @@ func (d *Database) SELECT_server_stats(server string) (stats ServerStatsProps, e
 		return stats, err
 	}
 
+	err = d.Pool.QueryRow(SELECT_TOTAL_USERS_SAVED, server).Scan(&stats.TotalUsersSaved)
+	if err != nil {
+		return stats, err
+	}
+
+	err = d.Pool.QueryRow(SELECT_TOTAL_ADVANCEMENTS, server).Scan(&stats.TotalAdvancements)
+	if err != nil {
+		return stats, err
+	}
+
+	err = d.Pool.QueryRow(SELECT_TOTAL_DEATHS, server).Scan(&stats.TotalDeaths)
+	if err != nil {
+		return stats, err
+	}
+
 	stats = ServerStatsProps{
 		TotalLogins:        totalLogins,
 		UniquePlayers:      totalUniqueLogins,
 		UniqueLogins:       totalNewUsers,
 		UserWithMostLogins: stats.UserWithMostLogins,
+		TotalUsersSaved:    stats.TotalUsersSaved,
+		TotalAdvancements:  stats.TotalAdvancements,
+		TotalDeaths:        stats.TotalDeaths,
 	}
 
 	return stats, err
