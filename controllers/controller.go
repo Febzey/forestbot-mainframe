@@ -102,11 +102,11 @@ func LoadAndHandleRoutes(router *mux.Router, controller *Controller) {
 
 		// getting weekly server stats for a specific server
 		// exactly 7 days ago
-		{
-			Method:      http.MethodGet,
-			Pattern:     apiUrl + "/server-stats",
-			HandlerFunc: controller.GetServerStats,
-		},
+		// {
+		// 	Method:      http.MethodGet,
+		// 	Pattern:     apiUrl + "/server-stats",
+		// 	HandlerFunc: controller.GetServerStats,
+		// },
 
 		// getting top 5 leaderboards for various things for specific server,
 		// exactly 7 days ago
@@ -114,6 +114,14 @@ func LoadAndHandleRoutes(router *mux.Router, controller *Controller) {
 			Method:      http.MethodGet,
 			Pattern:     apiUrl + "/server-leaderboard",
 			HandlerFunc: controller.GetTop5Leaderboard,
+		},
+
+		// Getting total users, deaths, and advancements saved on a minecraft server
+		// (total count number)
+		{
+			Method:      http.MethodGet,
+			Pattern:     apiUrl + "/server-stats-total-overall",
+			HandlerFunc: controller.GetServerTotalSavedDataCount,
 		},
 
 		//queries: server username or uuid
@@ -139,8 +147,8 @@ func LoadAndHandleRoutes(router *mux.Router, controller *Controller) {
 		//example url: http://localhost:5000/api/v1/player-activity-by-hour?server=simplyvanilla
 		{
 			Method:      http.MethodGet,
-			Pattern:     apiUrl + "/player-activity-by-hour",
-			HandlerFunc: controller.GetHourlyPlayerActivityStats,
+			Pattern:     apiUrl + "/server-activity-data",
+			HandlerFunc: controller.GetHourlyServerActivityStats,
 		},
 
 		//queries: username

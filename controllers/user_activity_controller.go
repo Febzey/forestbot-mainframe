@@ -27,11 +27,11 @@ import (
 We use this function for our websites specific server graph.
 **/
 
-func (c *Controller) GetHourlyPlayerActivityStats(w http.ResponseWriter, r *http.Request) {
+func (c *Controller) GetHourlyServerActivityStats(w http.ResponseWriter, r *http.Request) {
 
 	mc_server := r.URL.Query().Get("server")
 
-	playerActivityByHour, err := c.Database.PlayerActivityHourlyResults(mc_server)
+	playerActivityByHour, err := c.Database.ServerActivityHourlyResults(mc_server)
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		c.Logger.Error(err.Error())
@@ -144,28 +144,28 @@ func (c *Controller) GetPlayerActivityData(w http.ResponseWriter, r *http.Reques
 
 }
 
-// GetServerStats is a function that returns the weekly server stats for a specific server.
-func (c *Controller) GetServerStats(w http.ResponseWriter, r *http.Request) {
-	mc_server := r.URL.Query().Get("server")
+// // GetServerStats is a function that returns the weekly server stats for a specific server.
+// func (c *Controller) GetServerStats(w http.ResponseWriter, r *http.Request) {
+// 	mc_server := r.URL.Query().Get("server")
 
-	serverStats, err := c.Database.SELECT_server_stats(mc_server)
-	if err != nil {
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		c.Logger.Error(err.Error())
-		return
-	}
+// 	serverStats, err := c.Database.SELECT_server_stats(mc_server)
+// 	if err != nil {
+// 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+// 		c.Logger.Error(err.Error())
+// 		return
+// 	}
 
-	responseJSON, err := json.Marshal(serverStats)
-	if err != nil {
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		c.Logger.Error(err.Error())
-		return
-	}
+// 	responseJSON, err := json.Marshal(serverStats)
+// 	if err != nil {
+// 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+// 		c.Logger.Error(err.Error())
+// 		return
+// 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(responseJSON)
+// 	w.Header().Set("Content-Type", "application/json")
+// 	w.Write(responseJSON)
 
-}
+// }
 
 // getting top 5 leaderboards for various things from the past 7 days exactly.
 func (c *Controller) GetTop5Leaderboard(w http.ResponseWriter, r *http.Request) {
@@ -179,6 +179,29 @@ func (c *Controller) GetTop5Leaderboard(w http.ResponseWriter, r *http.Request) 
 	}
 
 	responseJSON, err := json.Marshal(top5Leaderboards)
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		c.Logger.Error(err.Error())
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(responseJSON)
+
+}
+
+func (c *Controller) GetServerTotalSavedDataCount(w http.ResponseWriter, r *http.Request) {
+
+	mc_server := r.URL.Query().Get("server")
+
+	totalSavedDataCount, err := c.Database.SELECT_server_stats_total_overall(mc_server)
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		c.Logger.Error(err.Error())
+		return
+	}
+
+	responseJSON, err := json.Marshal(totalSavedDataCount)
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		c.Logger.Error(err.Error())

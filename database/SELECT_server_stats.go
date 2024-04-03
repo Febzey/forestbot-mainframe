@@ -1,62 +1,136 @@
 package database
 
-type ServerStatsProps struct {
-	TotalLogins   int
-	UniquePlayers int
-	UniqueLogins  int
+// type ServerStatsProps struct {
+// 	TotalLogins        int
+// 	UniquePlayers      int
+// 	UniqueLogins       int
+// 	UserWithMostLogins struct {
+// 		Username   string
+// 		LoginCount int
+// 	}
+// }
 
-	UserWithMostLogins struct {
-		Username   string
-		LoginCount int
-	}
-
+type ServerStatsPropsOverall struct {
 	TotalUsersSaved   int
 	TotalAdvancements int
 	TotalDeaths       int
 }
 
+type top5Leaderboards struct {
+	Top5Killers []struct {
+		PlayerName string
+		KillCount  int
+		Uuid       string
+	}
+
+	Top5PVEDeaths []struct {
+		PlayerName string
+		DeathCount int
+		Uuid       string
+	}
+
+	Top5PVPDeaths []struct {
+		PlayerName    string
+		PVPDeathCount int
+		Uuid          string
+	}
+
+	Top5Advancements []struct {
+		PlayerName       string
+		AdvancementCount int
+		Uuid             string
+	}
+
+	Top5Logins []struct {
+		PlayerName string
+		LoginCount int
+		Uuid       string
+	}
+}
+
+// var (
+// 	SELECT_TOTAL_LOGINS = `
+// 	SELECT COUNT(*) AS unique_logins_count
+// 	FROM playerActivity
+// 	WHERE type = 'login'
+// 	AND mc_server = ?
+// 	AND date >= UNIX_TIMESTAMP(DATE_SUB(CURDATE(), INTERVAL 7 DAY)) * 1000;
+// 	`
+
+// 	SELECT_TOTAL_UNIQUE_LOGINS = `
+// 	SELECT COUNT(DISTINCT UUID) AS unique_logins_count
+// 	FROM playerActivity
+// 	WHERE type = 'login'
+// 	AND mc_server = ?
+// 	AND date >= UNIX_TIMESTAMP(DATE_SUB(CURDATE(), INTERVAL 7 DAY)) * 1000;
+// 	`
+
+// 	SELECT_TOTAL_NEW_USERS_COUNT = `
+// 	SELECT COUNT(*) AS new_players_count
+// 	FROM (
+// 		SELECT UUID
+// 		FROM playerActivity
+// 		WHERE type = 'login'
+// 		AND mc_server = ?
+// 		GROUP BY UUID
+// 		HAVING MIN(date) >= UNIX_TIMESTAMP(DATE_SUB(CURDATE(), INTERVAL 7 DAY)) * 1000
+// 	) AS new_players;
+// 	`
+
+// 	//! TODO lets remove this query. since we already send over the top 5 players with most logins for the past 7 days
+// 	//! remove once updated in frontend
+// 	SELECT_USER_WITH_MOST_LOGINS = `
+// 	SELECT username, COUNT(*) AS login_count
+// 	FROM playerActivity
+// 	WHERE type = 'login'
+// 	AND mc_server = ?
+// 	AND date >= UNIX_TIMESTAMP(DATE_SUB(CURDATE(), INTERVAL 7 DAY)) * 1000
+// 	GROUP BY username
+// 	ORDER BY login_count DESC
+// 	LIMIT 1;
+// 	`
+// )
+
+// some weekly and overall stats for the server
+// !TODO split the overall saved data to seperate endpoint.
+// ! TODO put the data needed for graph along with this data
+// func (d *Database) SELECT_server_stats(server string) (stats ServerStatsProps, err error) {
+
+// 	var totalLogins int
+// 	err = d.Pool.QueryRow(SELECT_TOTAL_LOGINS, server).Scan(&totalLogins)
+// 	if err != nil {
+// 		return stats, err
+// 	}
+
+// 	var totalUniqueLogins int
+// 	err = d.Pool.QueryRow(SELECT_TOTAL_UNIQUE_LOGINS, server).Scan(&totalUniqueLogins)
+// 	if err != nil {
+// 		return stats, err
+// 	}
+
+// 	var totalNewUsers int
+// 	err = d.Pool.QueryRow(SELECT_TOTAL_NEW_USERS_COUNT, server).Scan(&totalNewUsers)
+// 	if err != nil {
+// 		return stats, err
+// 	}
+
+// 	err = d.Pool.QueryRow(SELECT_USER_WITH_MOST_LOGINS, server).Scan(&stats.UserWithMostLogins.Username, &stats.UserWithMostLogins.LoginCount)
+// 	if err != nil {
+// 		return stats, err
+// 	}
+
+// 	stats = ServerStatsProps{
+// 		TotalLogins:        totalLogins,
+// 		UniquePlayers:      totalUniqueLogins,
+// 		UniqueLogins:       totalNewUsers,
+// 		UserWithMostLogins: stats.UserWithMostLogins,
+// 	}
+
+// 	return stats, err
+
+// }
+
 var (
-	SELECT_TOTAL_LOGINS = `
-	SELECT COUNT(*) AS unique_logins_count
-	FROM playerActivity
-	WHERE type = 'login'
-	AND mc_server = ?
-	AND date >= UNIX_TIMESTAMP(DATE_SUB(CURDATE(), INTERVAL 7 DAY)) * 1000;
-	`
-
-	SELECT_TOTAL_UNIQUE_LOGINS = `
-	SELECT COUNT(DISTINCT UUID) AS unique_logins_count
-	FROM playerActivity
-	WHERE type = 'login'
-	AND mc_server = ?
-	AND date >= UNIX_TIMESTAMP(DATE_SUB(CURDATE(), INTERVAL 7 DAY)) * 1000;
-	`
-
-	SELECT_TOTAL_NEW_USERS_COUNT = `
-	SELECT COUNT(*) AS new_players_count
-	FROM (
-		SELECT UUID
-		FROM playerActivity
-		WHERE type = 'login'
-		AND mc_server = ?
-		GROUP BY UUID
-		HAVING MIN(date) >= UNIX_TIMESTAMP(DATE_SUB(CURDATE(), INTERVAL 7 DAY)) * 1000
-	) AS new_players;
-	`
-
-	//! TODO lets remove this query. since we already send over the top 5 players with most logins for the past 7 days
-	//! remove once updated in frontend
-	SELECT_USER_WITH_MOST_LOGINS = `
-	SELECT username, COUNT(*) AS login_count
-	FROM playerActivity
-	WHERE type = 'login'
-	AND mc_server = ?
-	AND date >= UNIX_TIMESTAMP(DATE_SUB(CURDATE(), INTERVAL 7 DAY)) * 1000
-	GROUP BY username
-	ORDER BY login_count DESC
-	LIMIT 1;
-	`
-
 	SELECT_TOTAL_USERS_SAVED = `
 	SELECT COUNT(*) AS user_count
 	FROM users
@@ -76,32 +150,8 @@ var (
 	`
 )
 
-// some weekly and overall stats for the server
-func (d *Database) SELECT_server_stats(server string) (stats ServerStatsProps, err error) {
-
-	var totalLogins int
-	err = d.Pool.QueryRow(SELECT_TOTAL_LOGINS, server).Scan(&totalLogins)
-	if err != nil {
-		return stats, err
-	}
-
-	var totalUniqueLogins int
-	err = d.Pool.QueryRow(SELECT_TOTAL_UNIQUE_LOGINS, server).Scan(&totalUniqueLogins)
-	if err != nil {
-		return stats, err
-	}
-
-	var totalNewUsers int
-	err = d.Pool.QueryRow(SELECT_TOTAL_NEW_USERS_COUNT, server).Scan(&totalNewUsers)
-	if err != nil {
-		return stats, err
-	}
-
-	err = d.Pool.QueryRow(SELECT_USER_WITH_MOST_LOGINS, server).Scan(&stats.UserWithMostLogins.Username, &stats.UserWithMostLogins.LoginCount)
-	if err != nil {
-		return stats, err
-	}
-
+// getting total users, advancements and deaths saved for specific minecraft server.
+func (d *Database) SELECT_server_stats_total_overall(server string) (stats ServerStatsPropsOverall, err error) {
 	err = d.Pool.QueryRow(SELECT_TOTAL_USERS_SAVED, server).Scan(&stats.TotalUsersSaved)
 	if err != nil {
 		return stats, err
@@ -117,18 +167,13 @@ func (d *Database) SELECT_server_stats(server string) (stats ServerStatsProps, e
 		return stats, err
 	}
 
-	stats = ServerStatsProps{
-		TotalLogins:        totalLogins,
-		UniquePlayers:      totalUniqueLogins,
-		UniqueLogins:       totalNewUsers,
-		UserWithMostLogins: stats.UserWithMostLogins,
-		TotalUsersSaved:    stats.TotalUsersSaved,
-		TotalAdvancements:  stats.TotalAdvancements,
-		TotalDeaths:        stats.TotalDeaths,
+	stats = ServerStatsPropsOverall{
+		TotalUsersSaved:   stats.TotalUsersSaved,
+		TotalAdvancements: stats.TotalAdvancements,
+		TotalDeaths:       stats.TotalDeaths,
 	}
 
 	return stats, err
-
 }
 
 var (
@@ -195,38 +240,6 @@ var (
     LIMIT 5;
     `
 )
-
-type top5Leaderboards struct {
-	Top5Killers []struct {
-		PlayerName string
-		KillCount  int
-		Uuid       string
-	}
-
-	Top5PVEDeaths []struct {
-		PlayerName string
-		DeathCount int
-		Uuid       string
-	}
-
-	Top5PVPDeaths []struct {
-		PlayerName    string
-		PVPDeathCount int
-		Uuid          string
-	}
-
-	Top5Advancements []struct {
-		PlayerName       string
-		AdvancementCount int
-		Uuid             string
-	}
-
-	Top5Logins []struct {
-		PlayerName string
-		LoginCount int
-		Uuid       string
-	}
-}
 
 // GetTop5Leaderboard is a function that returns the top 5 leaderboards for various things from the past 7 days exactly.
 func (d *Database) SELECT_top_5_player_stats(server string) (stats top5Leaderboards, err error) {
