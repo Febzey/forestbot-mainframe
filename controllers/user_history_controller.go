@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -20,6 +21,10 @@ func (c *Controller) getAdvancements(w http.ResponseWriter, r *http.Request) {
 	server := r.URL.Query().Get("server")
 	limit := r.URL.Query().Get("limit")
 	order := r.URL.Query().Get("order")
+
+	fmt.Println(limit, " limit")
+
+	// need to get username instead fuck!, or do something like that incase we cant get the uuid.
 
 	//if any of these are empty, return a bad request
 	if uuid == "" || server == "" {
@@ -46,17 +51,20 @@ func (c *Controller) getAdvancements(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Calculate the number of pages based on the limit and page size
-	numPages := (limitInt + pageSize - 1) / pageSize
+	numPages := (limitInt + limitInt - 1) / limitInt
 
 	advancements := []types.MinecraftAdvancementMessage{}
 
 	// Loop through pages
 	for page := 1; page <= numPages; page++ {
 		// Calculate the offset for the current page
-		offset := (page - 1) * pageSize
+		offset := (page - 1) * limitInt
+
+		fmt.Println(pageSize, " pageSize")
+		fmt.Println(offset, " offset")
 
 		// Query database for the current page
-		rows, err := c.Database.Query("SELECT * FROM advancements WHERE mc_server = ? AND uuid = ? ORDER BY time "+order+" LIMIT ? OFFSET ?", server, uuid, pageSize, offset)
+		rows, err := c.Database.Query("SELECT * FROM advancements WHERE mc_server = ? AND uuid = ? ORDER BY time "+order+" LIMIT ? OFFSET ?", server, uuid, limitInt, offset)
 
 		if err != nil {
 			// Log the error and send a 500 to the client
@@ -85,16 +93,8 @@ func (c *Controller) getAdvancements(w http.ResponseWriter, r *http.Request) {
 			advancements = append(advancements, advancement)
 
 		}
-
-		// Close the rows for the current page
 		rows.Close()
 
-		// Process or send the current page of advancements as needed
-		// (e.g., send it to the client or perform further processing)
-		// ...
-
-		// If needed, you can break out of the loop early based on certain conditions
-		// (e.g., if you reach a maximum number of processed rows)
 	}
 
 	utils.RespondWithJSON(w, http.StatusOK, advancements)

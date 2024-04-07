@@ -100,14 +100,6 @@ func LoadAndHandleRoutes(router *mux.Router, controller *Controller) {
 			HandlerFunc: controller.GetAvailableServers,
 		},
 
-		// getting weekly server stats for a specific server
-		// exactly 7 days ago
-		// {
-		// 	Method:      http.MethodGet,
-		// 	Pattern:     apiUrl + "/server-stats",
-		// 	HandlerFunc: controller.GetServerStats,
-		// },
-
 		// getting top 5 leaderboards for various things for specific server,
 		// exactly 7 days ago
 		{
