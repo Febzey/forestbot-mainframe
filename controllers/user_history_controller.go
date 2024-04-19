@@ -133,32 +133,63 @@ func (c *Controller) GetMessages(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pageSize := 100
-	if limitInt < pageSize {
-		pageSize = limitInt
-	}
+	if limitInt > 100 {
+		pageSize := 100
+		offset := 0
+		messages := []types.MinecraftChatMessage{}
 
-	numPages := (limitInt + pageSize - 1) / pageSize
+		for offset < limitInt {
+			rows, err := c.Database.Query("SELECT name,message,date,mc_server,uuid FROM messages WHERE mc_server = ? AND name = ? ORDER BY date "+order+" LIMIT ? OFFSET ?", server, name, pageSize, offset)
 
-	messages := []types.MinecraftChatMessage{}
+			if err != nil {
+				http.Error(w, "Internal Database Error - Please contact Febzey or IncognitoMode on Discord", http.StatusInternalServerError)
+				c.Logger.Error(err.Error())
+				return
+			}
 
-	for page := 1; page <= numPages; page++ {
-		offset := (page - 1) * pageSize
+			for rows.Next() {
 
-		rows, err := c.Database.Query("SELECT name,message,date,mc_server,uuid FROM messages WHERE mc_server = ? AND name = ? ORDER BY date "+order+" LIMIT ? OFFSET ?", server, name, pageSize, offset)
+				if (len(messages) + 1) > limitInt {
+					break
+				}
 
+				var message types.MinecraftChatMessage
+
+				err := rows.Scan(
+					&message.Name,
+					&message.Message,
+					&message.Date,
+					&message.Mc_server,
+					&message.Uuid,
+				)
+				if err != nil {
+					http.Error(w, "Internal Database Error - Please contact Febzey or IncognitoMode on Discord", http.StatusInternalServerError)
+					c.Logger.Error(err.Error())
+					return
+				}
+
+				messages = append(messages, message)
+			}
+
+			rows.Close()
+			offset += pageSize
+		}
+
+		utils.RespondWithJSON(w, http.StatusOK, messages)
+
+	} else {
+
+		rows, err := c.Database.Query("SELECT name,message,date,mc_server,uuid FROM messages WHERE mc_server = ? AND name = ? ORDER BY date "+order+" LIMIT ?", server, name, limit)
 		if err != nil {
-			http.Error(w, "Internal Database Error - Please contact Febzey or IncognitoMode on Discord", http.StatusInternalServerError)
+			http.Error(w, "Internal Database Error", http.StatusInternalServerError)
 			c.Logger.Error(err.Error())
 			return
 		}
+		defer rows.Close()
+
+		messages := []types.MinecraftChatMessage{}
 
 		for rows.Next() {
-
-			if (len(messages) + 1) > limitInt {
-				break
-			}
-
 			var message types.MinecraftChatMessage
 
 			err := rows.Scan(
@@ -169,7 +200,7 @@ func (c *Controller) GetMessages(w http.ResponseWriter, r *http.Request) {
 				&message.Uuid,
 			)
 			if err != nil {
-				http.Error(w, "Internal Database Error - Please contact Febzey or IncognitoMode on Discord", http.StatusInternalServerError)
+				http.Error(w, "Internal Database Error", http.StatusInternalServerError)
 				c.Logger.Error(err.Error())
 				return
 			}
@@ -177,11 +208,8 @@ func (c *Controller) GetMessages(w http.ResponseWriter, r *http.Request) {
 			messages = append(messages, message)
 		}
 
-		rows.Close()
+		utils.RespondWithJSON(w, http.StatusOK, messages)
 	}
-
-	utils.RespondWithJSON(w, http.StatusOK, messages)
-
 }
 
 // METHOD: GET

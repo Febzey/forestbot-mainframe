@@ -126,7 +126,6 @@ func ProcessWebsocketEvent(c *Controller) {
 
 func (c *Controller) handleApiKey(message WebsocketEvent) {
 	c.Mutex.Lock()
-	defer c.Mutex.Unlock()
 
 	if c.Clients[message.Client_id].Key.Key != "" {
 		c.sendErrorMessage(message.Client_id, "You are already authenticated.")
@@ -190,6 +189,7 @@ func (c *Controller) handleInboundMinecraftChat(message WebsocketEvent) {
 	}
 
 	c.Logger.WebsocketInfo("Minecraft chat message received from client: " + fmt.Sprintf("%v", minecraftChatMessage))
+
 	err := c.Database.SaveMinecraftChatMessage(minecraftChatMessage)
 	if err != nil {
 		fmt.Println(err)
