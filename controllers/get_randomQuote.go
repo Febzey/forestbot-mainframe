@@ -7,6 +7,8 @@ import (
 	"github.com/febzey/ForestBot-Mainframe/utils"
 )
 
+// TODO! fix this!!!!!!!!!
+
 // METHOD: GET
 // PATH: /quote
 // QUERIES: name, server

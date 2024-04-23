@@ -23,8 +23,8 @@ type NewApiKeyRequest struct {
 }
 
 func (c *Controller) PostNewApiKey(w http.ResponseWriter, r *http.Request) {
-
 	var req NewApiKeyRequest
+
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&req)
 	if err != nil {
