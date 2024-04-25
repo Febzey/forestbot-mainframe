@@ -79,6 +79,9 @@ api key is sent in a seperate event message, after the client_id is sent back to
 *
 */
 func NewWebsocketClient(conn *websocket.Conn, mc_server string, isBot string, c *Controller) *WebsocketClient {
+	c.Mutex.Lock()
+	defer c.Mutex.Unlock()
+
 	//
 	//Checking if the connecting client is a mc bot
 	//
@@ -94,6 +97,8 @@ func NewWebsocketClient(conn *websocket.Conn, mc_server string, isBot string, c 
 			conn.Close()
 			return nil
 		}
+
+		// checking if a bot client already exists for this mc_serverss
 		for _, client := range c.Clients {
 			if client.Mc_server == mc_server && client.IsMcClient {
 				//a user is trying to connect as a bot client, but a
@@ -109,6 +114,7 @@ func NewWebsocketClient(conn *websocket.Conn, mc_server string, isBot string, c 
 				return nil
 			}
 		}
+
 	}
 
 	//
@@ -158,9 +164,9 @@ func NewWebsocketClient(conn *websocket.Conn, mc_server string, isBot string, c 
 	//
 	//Adding the websocket client to our clients map inside of the Controller Struct
 	//
-	c.Mutex.Lock()
+	//c.Mutex.Lock()
 	c.Clients[client_id] = client
-	c.Mutex.Unlock()
+	//c.Mutex.Unlock()
 
 	//
 	//Returning our newly creating client instance since all checks have passed!
@@ -176,6 +182,7 @@ Client -> Server
 */
 func (ws *WebsocketClient) readMessages() {
 	defer func() {
+		fmt.Println("Closing connection" + ws.ClientID)
 		ws.Controller.removeWebSocketClient(ws.ClientID)
 	}()
 

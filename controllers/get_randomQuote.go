@@ -21,8 +21,6 @@ func (c *Controller) GetRandomQuotes(w http.ResponseWriter, r *http.Request) {
 	name := r.URL.Query().Get("name")
 	server := r.URL.Query().Get("server")
 
-	c.Logger.Info("Getting random quote for " + name + " on " + server)
-
 	if name == "" || server == "" {
 		http.Error(w, "Invalid 'name' and 'server' parameter required", http.StatusBadRequest)
 		return

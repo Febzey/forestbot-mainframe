@@ -1,8 +1,6 @@
 package database
 
 import (
-	"fmt"
-
 	"github.com/febzey/ForestBot-Mainframe/types"
 )
 
@@ -36,8 +34,6 @@ func (d *Database) GetUserByUUID(uuid string, server string) (types.User, error)
 			return user, err
 		}
 	}
-
-	fmt.Println(user)
 
 	return user, nil
 }
