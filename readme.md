@@ -1,5 +1,9 @@
 # API Documentation
 
+### tldr; 
+This entire API is so all bots connect to a centralized place, every bot and service using forestbots data will connect here and communicate via websockets.
+All data related to ForestBot and its services will be accessed and stored using this API. This way we are only ever creating a database connection through a single spot.
+
 ## Overview
 
 Welcome to the ForestBot API documentation. ForestBot is a comprehensive system that facilitates real-time data exchange and interaction with Minecraft servers. The API provides endpoints to retrieve information about players, their achievements, playtime, and enables WebSocket connections for dynamic, real-time updates.
